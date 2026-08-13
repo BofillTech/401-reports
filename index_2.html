@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>401 Homebuilders — AI Automation Dashboard</title>
+<style>
+  :root{
+    --plane:#f9f9f7; --surface:#fcfcfb;
+    --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,0.10);
+    --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s7:#4a3aa7;
+    --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --goodink:#006300;
+    --navy:#0d366b; --navy2:#104281;
+    --seq250:#86b6ef; --seq350:#5598e7; --seq450:#2a78d6; --seq550:#1c5cab; --seq650:#104281;
+  }
+  :root[data-theme="dark"]{
+    --plane:#0d0d0d; --surface:#1a1a19;
+    --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s7:#9085e9;
+    --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --goodink:#0ca30c;
+    --navy:#0d366b; --navy2:#184f95;
+    --seq250:#5598e7; --seq350:#3987e5; --seq450:#256abf; --seq550:#184f95; --seq650:#0d366b;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--plane); color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    font-size:14px; line-height:1.45; -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit}
+  .wrap{max-width:1180px; margin:0 auto; padding:0 20px 56px}
+  /* header */
+  header{background:var(--navy); color:#fff}
+  .hdr{max-width:1180px; margin:0 auto; padding:16px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap}
+  .brand{display:flex; align-items:baseline; gap:10px}
+  .brand .mark{font-weight:800; letter-spacing:.5px; font-size:20px}
+  .brand .sub{font-size:12.5px; color:#cde2fb; font-weight:500}
+  .hdr .spacer{flex:1}
+  .pill{font-size:11.5px; font-weight:600; padding:4px 9px; border-radius:999px; background:rgba(255,255,255,.14); color:#fff; white-space:nowrap}
+  .pill.sample{background:var(--warning); color:#3a2a00}
+  .toggle{cursor:pointer; border:1px solid rgba(255,255,255,.28); background:transparent; color:#fff; border-radius:8px; padding:5px 10px; font-size:12px; font-weight:600}
+  .toggle:hover{background:rgba(255,255,255,.10)}
+  /* section */
+  h2.sec{font-size:12px; letter-spacing:.9px; text-transform:uppercase; color:var(--muted); font-weight:700; margin:30px 2px 12px}
+  .grid{display:grid; gap:14px}
+  .kpis{grid-template-columns:repeat(6,1fr)}
+  .cols2{grid-template-columns:1.05fr .95fr}
+  .cols3{grid-template-columns:repeat(3,1fr)}
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 16px 15px}
+  .tile .lbl{font-size:11.5px; color:var(--ink2); font-weight:600; display:flex; align-items:center; gap:6px}
+  .tile .val{font-size:29px; font-weight:750; margin-top:7px; letter-spacing:-.5px}
+  .tile .val small{font-size:14px; color:var(--muted); font-weight:600; letter-spacing:0}
+  .tile .foot{font-size:11.5px; margin-top:5px; color:var(--muted)}
+  .up{color:var(--goodink); font-weight:700}
+  .dot{width:8px; height:8px; border-radius:50%; display:inline-block}
+  .cardhead{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:6px}
+  .cardhead h3{font-size:14.5px; margin:0; font-weight:700}
+  .cardhead .note{font-size:11.5px; color:var(--muted)}
+  /* funnel */
+  .funnel-row{display:flex; align-items:center; gap:10px; margin:9px 0}
+  .funnel-row .name{width:104px; font-size:12.5px; color:var(--ink2); font-weight:600; flex:none}
+  .bar{height:26px; border-radius:5px; position:relative; min-width:34px; display:flex; align-items:center; justify-content:flex-end}
+  .bar span{color:#fff; font-size:12px; font-weight:700; padding-right:9px; font-variant-numeric:tabular-nums}
+  .funnel-row .pct{width:44px; text-align:right; font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; flex:none}
+  /* legend */
+  .legend{display:flex; gap:16px; font-size:12px; color:var(--ink2); align-items:center}
+  .legend .it{display:flex; align-items:center; gap:6px}
+  .legend .swatch{width:11px; height:11px; border-radius:3px}
+  /* trend svg */
+  svg{display:block; width:100%; height:auto; overflow:visible}
+  .gl{stroke:var(--grid); stroke-width:1}
+  .axl{fill:var(--muted); font-size:10.5px; font-variant-numeric:tabular-nums}
+  .dpt{cursor:pointer}
+  /* workstream cards */
+  .ws .top{display:flex; align-items:center; gap:9px; margin-bottom:8px}
+  .ws .top .n{font-weight:750; font-size:14.5px}
+  .status{font-size:11px; font-weight:700; padding:3px 8px; border-radius:999px; display:inline-flex; align-items:center; gap:5px}
+  .st-live{background:rgba(12,163,12,.13); color:var(--goodink)}
+  .st-prog{background:rgba(41,120,214,.13); color:var(--seq550)}
+  .st-queued{background:rgba(137,135,129,.16); color:var(--ink2)}
+  .ws p.desc{margin:2px 0 12px; font-size:12.5px; color:var(--ink2)}
+  .ws .metrics{display:flex; flex-wrap:wrap; gap:14px 22px; border-top:1px solid var(--border); padding-top:11px}
+  .ws .metrics div{font-size:12px; color:var(--muted)}
+  .ws .metrics b{display:block; font-size:18px; color:var(--ink); font-weight:750; letter-spacing:-.3px}
+  /* table */
+  table{width:100%; border-collapse:collapse; font-size:12.5px}
+  th{text-align:left; font-size:10.5px; letter-spacing:.6px; text-transform:uppercase; color:var(--muted); font-weight:700; padding:0 8px 8px}
+  td{padding:9px 8px; border-top:1px solid var(--border); vertical-align:middle}
+  td.num{text-align:right; font-variant-numeric:tabular-nums; color:var(--ink2)}
+  .chip{font-size:11px; font-weight:700; padding:3px 8px; border-radius:999px; display:inline-flex; align-items:center; gap:5px; white-space:nowrap}
+  .c-book{background:rgba(12,163,12,.13); color:var(--goodink)}
+  .c-trans{background:rgba(41,120,214,.13); color:var(--seq550)}
+  .c-qual{background:rgba(27,175,122,.15); color:#0c6b4a}
+  .c-retry{background:rgba(250,178,25,.18); color:#8a5a00}
+  .c-opt{background:rgba(208,59,59,.13); color:var(--critical)}
+  /* compliance */
+  .cmp-item{display:flex; align-items:flex-start; gap:11px; padding:10px 0; border-top:1px solid var(--border)}
+  .cmp-item:first-of-type{border-top:0}
+  .cmp-item .ico{width:26px; height:26px; border-radius:7px; flex:none; display:flex; align-items:center; justify-content:center; font-size:14px}
+  .cmp-item .t{font-weight:650; font-size:13px}
+  .cmp-item .d{font-size:11.5px; color:var(--muted)}
+  .cmp-item .big{margin-left:auto; font-size:20px; font-weight:750; font-variant-numeric:tabular-nums}
+  /* process strip */
+  .flow{display:flex; align-items:stretch; gap:0; flex-wrap:wrap}
+  .step{flex:1; min-width:120px; background:var(--surface); border:1px solid var(--border); padding:13px 13px; position:relative}
+  .step:first-child{border-top-left-radius:12px; border-bottom-left-radius:12px}
+  .step:last-child{border-top-right-radius:12px; border-bottom-right-radius:12px}
+  .step+.step{border-left:0}
+  .step .k{font-size:10.5px; color:var(--muted); font-weight:700; letter-spacing:.4px}
+  .step .h{font-weight:700; font-size:13px; margin-top:3px}
+  .step .p{font-size:11.5px; color:var(--ink2); margin-top:4px}
+  .step .arrow{position:absolute; right:-8px; top:50%; transform:translateY(-50%); z-index:2; color:var(--axis); font-size:15px; background:var(--plane); width:16px; text-align:center}
+  footer{margin-top:30px; font-size:11.5px; color:var(--muted); border-top:1px solid var(--border); padding-top:14px}
+  .tt{position:fixed; pointer-events:none; background:var(--ink); color:var(--surface); font-size:11.5px; padding:5px 8px; border-radius:6px; opacity:0; transition:opacity .08s; white-space:nowrap; z-index:50; font-weight:600}
+  @media(max-width:960px){.kpis{grid-template-columns:repeat(3,1fr)} .cols2,.cols3{grid-template-columns:1fr}}
+  @media(max-width:560px){.kpis{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr">
+    <div class="brand"><span class="mark">401 HOMEBUILDERS</span><span class="sub">AI Automation Program</span></div>
+    <div class="spacer"></div>
+    <span class="pill sample">◆ Sample data — illustrative</span>
+    <span class="pill" id="period">Aug 2026 · month-to-date</span>
+    <button class="toggle" id="tgl">☾ Dark</button>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- KPI ROW -->
+  <h2 class="sec">Speed-to-Lead · this month at a glance</h2>
+  <div class="grid kpis">
+    <div class="card tile">
+      <div class="lbl"><span class="dot" style="background:var(--s1)"></span>Avg. speed to call</div>
+      <div class="val">34<small> sec</small></div>
+      <div class="foot"><span class="up">▼ 11s</span> vs last month</div>
+    </div>
+    <div class="card tile">
+      <div class="lbl"><span class="dot" style="background:var(--s3)"></span>Leads captured</div>
+      <div class="val">52</div>
+      <div class="foot"><span class="up">▲ 18%</span> vs last month</div>
+    </div>
+    <div class="card tile">
+      <div class="lbl"><span class="dot" style="background:var(--s1)"></span>AI calls placed</div>
+      <div class="val">48</div>
+      <div class="foot">92% of consented leads</div>
+    </div>
+    <div class="card tile">
+      <div class="lbl"><span class="dot" style="background:var(--good)"></span>Consultations booked</div>
+      <div class="val">14</div>
+      <div class="foot"><span class="up">27%</span> of all leads</div>
+    </div>
+    <div class="card tile">
+      <div class="lbl"><span class="dot" style="background:var(--s1)"></span>Warm transfers</div>
+      <div class="val">5</div>
+      <div class="foot">connected live to sales</div>
+    </div>
+    <div class="card tile">
+      <div class="lbl"><span class="dot" style="background:var(--critical)"></span>Opt-outs (suppressed)</div>
+      <div class="val">3</div>
+      <div class="foot">auto-removed from calling</div>
+    </div>
+  </div>
+
+  <!-- FUNNEL + TREND -->
+  <div class="grid cols2" style="margin-top:14px">
+    <div class="card">
+      <div class="cardhead"><h3>Lead funnel</h3><span class="note">form-fill → booked · this month</span></div>
+      <div id="funnel"></div>
+    </div>
+    <div class="card">
+      <div class="cardhead"><h3>Daily activity</h3>
+        <div class="legend">
+          <span class="it"><span class="swatch" style="background:var(--s1)"></span>Leads</span>
+          <span class="it"><span class="swatch" style="background:var(--good)"></span>Booked</span>
+        </div>
+      </div>
+      <div id="trend"></div>
+    </div>
+  </div>
+
+  <!-- WORKSTREAMS -->
+  <h2 class="sec">The three automations</h2>
+  <div class="grid cols3">
+    <div class="card ws">
+      <div class="top"><span class="n">1 · Parcel & owner outreach</span></div>
+      <div><span class="status st-prog">● In progress</span></div>
+      <p class="desc">Finds land + owners matching 401's buy criteria, then reaches cold owners by <b>direct mail</b> (never AI calls — TCPA-compliant).</p>
+      <div class="metrics">
+        <div><b>1,284</b>parcels identified</div>
+        <div><b>861</b>after DNC scrub</div>
+        <div><b>500</b>postcards mailed</div>
+        <div><b>22</b>responses</div>
+      </div>
+    </div>
+    <div class="card ws">
+      <div class="top"><span class="n">2 · Inbound speed-to-lead</span></div>
+      <div><span class="status st-live">● Live</span></div>
+      <p class="desc">Every website form-fill gets an <b>AI call in seconds</b> — discloses it's AI, qualifies, and books a consult or warm-transfers to sales.</p>
+      <div class="metrics">
+        <div><b>52</b>leads this month</div>
+        <div><b>34s</b>avg. response</div>
+        <div><b>14</b>booked</div>
+        <div><b>19</b>qualified</div>
+      </div>
+    </div>
+    <div class="card ws">
+      <div class="top"><span class="n">3 · Warm CRM reactivation</span></div>
+      <div><span class="status st-queued">● Queued</span></div>
+      <p class="desc">Re-engages the aged, opted-in lead list — cheapest & safest first (email → text → AI call), scrubbed and segmented before any dialing.</p>
+      <div class="metrics">
+        <div><b>2,140</b>aged leads</div>
+        <div><b>—</b>pending consent review</div>
+        <div><b>—</b>re-engaged</div>
+        <div><b>—</b>recovered</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIVITY + COMPLIANCE -->
+  <div class="grid cols2" style="margin-top:14px">
+    <div class="card">
+      <div class="cardhead"><h3>Recent activity</h3><span class="note">latest inbound calls</span></div>
+      <table>
+        <thead><tr><th>Lead</th><th>Town</th><th>Outcome</th><th style="text-align:right">Speed</th></tr></thead>
+        <tbody id="feed"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="cardhead"><h3>Compliance guardrails</h3><span class="note">TCPA · this month</span></div>
+      <div class="cmp-item">
+        <div class="ico" style="background:rgba(12,163,12,.14); color:var(--good)">✓</div>
+        <div><div class="t">Consent gate enforced</div><div class="d">Leads with no consent checkbox are logged but never called.</div></div>
+        <div class="big">4</div>
+      </div>
+      <div class="cmp-item">
+        <div class="ico" style="background:rgba(208,59,59,.13); color:var(--critical)">⊘</div>
+        <div><div class="t">Opt-outs honored instantly</div><div class="d">"Stop calling" → removed & suppressed on all future runs.</div></div>
+        <div class="big">3</div>
+      </div>
+      <div class="cmp-item">
+        <div class="ico" style="background:rgba(41,120,214,.13); color:var(--seq550)">☏</div>
+        <div><div class="t">AI disclosure on every call</div><div class="d">Agent states it's an automated assistant as the first line.</div></div>
+        <div class="big">100%</div>
+      </div>
+      <div class="cmp-item">
+        <div class="ico" style="background:rgba(250,178,25,.18); color:#8a5a00">⟳</div>
+        <div><div class="t">No-answer retries (capped)</div><div class="d">One polite retry, then rests — no repeat-dialing.</div></div>
+        <div class="big">7</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROCESS -->
+  <h2 class="sec">How a lead moves through the system</h2>
+  <div class="flow">
+    <div class="step"><div class="k">STEP 1</div><div class="h">Form submitted</div><div class="p">Prospect fills the 401 website form.</div><div class="arrow">→</div></div>
+    <div class="step"><div class="k">STEP 2</div><div class="h">Consent gate</div><div class="p">Checked in code before any call.</div><div class="arrow">→</div></div>
+    <div class="step"><div class="k">STEP 3</div><div class="h">AI calls in seconds</div><div class="p">Discloses it's AI, qualifies.</div><div class="arrow">→</div></div>
+    <div class="step"><div class="k">STEP 4</div><div class="h">Book or transfer</div><div class="p">Consult booked or live hand-off.</div><div class="arrow">→</div></div>
+    <div class="step"><div class="k">STEP 5</div><div class="h">Logged & tracked</div><div class="p">Outcome saved; sales notified.</div></div>
+  </div>
+
+  <footer>
+    <b>Note:</b> All figures on this page are illustrative sample data for design review — the live dashboard reads real numbers from the 401 lead database once the system is activated. Calling guidance reflects general TCPA best practices, not legal advice. Prepared by Bofill Technologies.
+  </footer>
+</div>
+
+<div class="tt" id="tt"></div>
+
+<script>
+/* ---------- data (sample) ---------- */
+const funnel = [
+  {name:"Form-fills", v:52, c:"var(--seq250)"},
+  {name:"Called",     v:48, c:"var(--seq350)"},
+  {name:"Connected",  v:31, c:"var(--seq450)"},
+  {name:"Qualified",  v:19, c:"var(--seq550)"},
+  {name:"Booked",     v:14, c:"var(--seq650)"}
+];
+const days = ["Jul 25","26","27","28","29","30","31","Aug 1","2","3","4","5","6","7"];
+const leads  = [2,3,5,4,3,6,4,5,3,4,6,5,4,3];
+const booked = [0,1,1,1,0,2,1,1,1,1,2,1,1,0];
+const feed = [
+  {n:"Dana P.",   t:"Cranston",     o:"Booked consultation", cls:"c-book",  s:"0:29"},
+  {n:"Marcus L.", t:"Warwick",      o:"Warm transfer",       cls:"c-trans", s:"0:41"},
+  {n:"Sofia R.",  t:"Coventry",     o:"Qualified · callback",cls:"c-qual",  s:"0:22"},
+  {n:"Raj S.",    t:"Johnston",     o:"Booked consultation", cls:"c-book",  s:"0:37"},
+  {n:"Tom B.",    t:"Cranston",     o:"No answer · retry",   cls:"c-retry", s:"—"},
+  {n:"Ellen K.",  t:"West Warwick", o:"Opted out",           cls:"c-opt",   s:"0:12"}
+];
+
+/* ---------- funnel ---------- */
+const maxF = funnel[0].v;
+document.getElementById("funnel").innerHTML = funnel.map(f=>{
+  const w = Math.max(6, Math.round(f.v/maxF*100));
+  const pct = Math.round(f.v/maxF*100);
+  return `<div class="funnel-row">
+    <span class="name">${f.name}</span>
+    <div class="bar" style="width:${w}%;background:${f.c}"><span>${f.v}</span></div>
+    <span class="pct">${pct}%</span>
+  </div>`;
+}).join("");
+
+/* ---------- feed ---------- */
+document.getElementById("feed").innerHTML = feed.map(r=>`
+  <tr><td><b>${r.n}</b></td><td>${r.t}</td>
+  <td><span class="chip ${r.cls}">${r.o}</span></td>
+  <td class="num">${r.s}</td></tr>`).join("");
+
+/* ---------- trend line chart ---------- */
+(function(){
+  const W=560,H=210, m={t:14,r:16,b:26,l:26};
+  const iw=W-m.l-m.r, ih=H-m.t-m.b;
+  const maxY=8, n=days.length;
+  const x=i=> m.l + (n<=1?0:i/(n-1)*iw);
+  const y=v=> m.t + ih - (v/maxY)*ih;
+  const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  let g="";
+  for(let v=0; v<=maxY; v+=2){ g+=`<line class="gl" x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}"/><text class="axl" x="${m.l-6}" y="${y(v)+3}" text-anchor="end">${v}</text>`; }
+  [0,3,6,9,12,13].forEach(i=>{ g+=`<text class="axl" x="${x(i)}" y="${H-8}" text-anchor="middle">${days[i]}</text>`; });
+  const line=(arr,col)=>{ let d=arr.map((v,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+    return `<path d="${d}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`; };
+  const pts=(arr,col,name)=> arr.map((v,i)=>`<circle class="dpt" cx="${x(i)}" cy="${y(v)}" r="4" fill="${col}" stroke="var(--surface)" stroke-width="2" data-t="${days[i]}: ${v} ${name}"/>`).join("");
+  const svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily leads and bookings, last 14 days">
+    ${g}
+    ${line(leads,"var(--s1)")}${line(booked,"var(--good)")}
+    ${pts(leads,"var(--s1)","leads")}${pts(booked,"var(--good)","booked")}
+    <text x="${x(n-1)+6}" y="${y(leads[n-1])+3}" class="axl" style="fill:var(--s1);font-weight:700">Leads</text>
+  </svg>`;
+  document.getElementById("trend").innerHTML=svg;
+  const tt=document.getElementById("tt");
+  document.querySelectorAll(".dpt").forEach(c=>{
+    c.addEventListener("mousemove",e=>{tt.textContent=c.getAttribute("data-t");tt.style.left=(e.clientX+12)+"px";tt.style.top=(e.clientY-10)+"px";tt.style.opacity=1;});
+    c.addEventListener("mouseleave",()=>tt.style.opacity=0);
+  });
+})();
+
+/* ---------- theme toggle ---------- */
+const root=document.documentElement, btn=document.getElementById("tgl");
+btn.addEventListener("click",()=>{
+  const dark=root.getAttribute("data-theme")==="dark";
+  root.setAttribute("data-theme",dark?"light":"dark");
+  btn.textContent=dark?"☾ Dark":"☀ Light";
+});
+</script>
+</body>
+</html>
