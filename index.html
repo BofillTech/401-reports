@@ -43,6 +43,7 @@
   .hdr .spacer{flex:1}
   .pill{font-size:11.5px; font-weight:600; padding:4px 9px; border-radius:999px; background:rgba(255,255,255,.14); color:#fff; white-space:nowrap}
   .pill.sample{background:var(--warning); color:#3a2a00}
+  .pill.live{background:var(--good); color:#04310a}
   .toggle{cursor:pointer; border:1px solid rgba(255,255,255,.28); background:transparent; color:#fff; border-radius:8px; padding:5px 10px; font-size:12px; font-weight:600}
   .toggle:hover{background:rgba(255,255,255,.10)}
   /* section */
@@ -57,6 +58,7 @@
   .tile .val small{font-size:14px; color:var(--muted); font-weight:600; letter-spacing:0}
   .tile .foot{font-size:11.5px; margin-top:5px; color:var(--muted)}
   .up{color:var(--goodink); font-weight:700}
+  .down{color:var(--critical); font-weight:700}
   .dot{width:8px; height:8px; border-radius:50%; display:inline-block}
   .cardhead{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:6px}
   .cardhead h3{font-size:14.5px; margin:0; font-weight:700}
@@ -76,6 +78,7 @@
   .gl{stroke:var(--grid); stroke-width:1}
   .axl{fill:var(--muted); font-size:10.5px; font-variant-numeric:tabular-nums}
   .dpt{cursor:pointer}
+  .empty-note{font-size:12px; color:var(--muted); padding:20px 4px; text-align:center}
   /* workstream cards */
   .ws .top{display:flex; align-items:center; gap:9px; margin-bottom:8px}
   .ws .top .n{font-weight:750; font-size:14.5px}
@@ -126,8 +129,8 @@
   <div class="hdr">
     <div class="brand"><span class="mark">401 HOMEBUILDERS</span><span class="sub">AI Automation Program</span></div>
     <div class="spacer"></div>
-    <span class="pill sample">◆ Sample data — illustrative</span>
-    <span class="pill" id="period">Aug 2026 · month-to-date</span>
+    <span class="pill sample" id="modePill">◆ Sample data — illustrative</span>
+    <span class="pill" id="period">month-to-date</span>
     <button class="toggle" id="tgl">☾ Dark</button>
   </div>
 </header>
@@ -139,32 +142,32 @@
   <div class="grid kpis">
     <div class="card tile">
       <div class="lbl"><span class="dot" style="background:var(--s1)"></span>Avg. speed to call</div>
-      <div class="val">34<small> sec</small></div>
-      <div class="foot"><span class="up">▼ 11s</span> vs last month</div>
+      <div class="val" id="k-speed">—</div>
+      <div class="foot" id="k-speed-foot">vs last month</div>
     </div>
     <div class="card tile">
       <div class="lbl"><span class="dot" style="background:var(--s3)"></span>Leads captured</div>
-      <div class="val">52</div>
-      <div class="foot"><span class="up">▲ 18%</span> vs last month</div>
+      <div class="val" id="k-leads">—</div>
+      <div class="foot" id="k-leads-foot">this month</div>
     </div>
     <div class="card tile">
       <div class="lbl"><span class="dot" style="background:var(--s1)"></span>AI calls placed</div>
-      <div class="val">48</div>
-      <div class="foot">92% of consented leads</div>
+      <div class="val" id="k-calls">—</div>
+      <div class="foot" id="k-calls-foot">of consented leads</div>
     </div>
     <div class="card tile">
       <div class="lbl"><span class="dot" style="background:var(--good)"></span>Consultations booked</div>
-      <div class="val">14</div>
-      <div class="foot"><span class="up">27%</span> of all leads</div>
+      <div class="val" id="k-booked">—</div>
+      <div class="foot" id="k-booked-foot">of all leads</div>
     </div>
     <div class="card tile">
       <div class="lbl"><span class="dot" style="background:var(--s1)"></span>Warm transfers</div>
-      <div class="val">5</div>
+      <div class="val" id="k-transfers">—</div>
       <div class="foot">connected live to sales</div>
     </div>
     <div class="card tile">
       <div class="lbl"><span class="dot" style="background:var(--critical)"></span>Opt-outs (suppressed)</div>
-      <div class="val">3</div>
+      <div class="val" id="k-optouts">—</div>
       <div class="foot">auto-removed from calling</div>
     </div>
   </div>
@@ -194,21 +197,21 @@
       <div><span class="status st-prog">● In progress</span></div>
       <p class="desc">Finds land + owners matching 401's buy criteria, then reaches cold owners by <b>direct mail</b> (never AI calls — TCPA-compliant).</p>
       <div class="metrics">
-        <div><b>1,284</b>parcels identified</div>
-        <div><b>861</b>after DNC scrub</div>
-        <div><b>500</b>postcards mailed</div>
-        <div><b>22</b>responses</div>
+        <div><b id="w1-a">—</b>parcels identified</div>
+        <div><b id="w1-b">—</b>after DNC scrub</div>
+        <div><b id="w1-c">—</b>postcards mailed</div>
+        <div><b id="w1-d">—</b>responses</div>
       </div>
     </div>
     <div class="card ws">
       <div class="top"><span class="n">2 · Inbound speed-to-lead</span></div>
-      <div><span class="status st-live">● Live</span></div>
+      <div><span class="status st-live" id="w2-status">● Live</span></div>
       <p class="desc">Every website form-fill gets an <b>AI call in seconds</b> — discloses it's AI, qualifies, and books a consult or warm-transfers to sales.</p>
       <div class="metrics">
-        <div><b>52</b>leads this month</div>
-        <div><b>34s</b>avg. response</div>
-        <div><b>14</b>booked</div>
-        <div><b>19</b>qualified</div>
+        <div><b id="w2-leads">—</b>leads this month</div>
+        <div><b id="w2-resp">—</b>avg. response</div>
+        <div><b id="w2-booked">—</b>booked</div>
+        <div><b id="w2-qual">—</b>qualified</div>
       </div>
     </div>
     <div class="card ws">
@@ -216,7 +219,7 @@
       <div><span class="status st-queued">● Queued</span></div>
       <p class="desc">Re-engages the aged, opted-in lead list — cheapest & safest first (email → text → AI call), scrubbed and segmented before any dialing.</p>
       <div class="metrics">
-        <div><b>2,140</b>aged leads</div>
+        <div><b id="w3-a">—</b>aged leads</div>
         <div><b>—</b>pending consent review</div>
         <div><b>—</b>re-engaged</div>
         <div><b>—</b>recovered</div>
@@ -232,28 +235,29 @@
         <thead><tr><th>Lead</th><th>Town</th><th>Outcome</th><th style="text-align:right">Speed</th></tr></thead>
         <tbody id="feed"></tbody>
       </table>
+      <div class="empty-note" id="feed-empty" style="display:none">No calls yet — this fills in as leads come through.</div>
     </div>
     <div class="card">
       <div class="cardhead"><h3>Compliance guardrails</h3><span class="note">TCPA · this month</span></div>
       <div class="cmp-item">
         <div class="ico" style="background:rgba(12,163,12,.14); color:var(--good)">✓</div>
         <div><div class="t">Consent gate enforced</div><div class="d">Leads with no consent checkbox are logged but never called.</div></div>
-        <div class="big">4</div>
+        <div class="big" id="cmp-blocked">—</div>
       </div>
       <div class="cmp-item">
         <div class="ico" style="background:rgba(208,59,59,.13); color:var(--critical)">⊘</div>
         <div><div class="t">Opt-outs honored instantly</div><div class="d">"Stop calling" → removed & suppressed on all future runs.</div></div>
-        <div class="big">3</div>
+        <div class="big" id="cmp-optouts">—</div>
       </div>
       <div class="cmp-item">
         <div class="ico" style="background:rgba(41,120,214,.13); color:var(--seq550)">☏</div>
         <div><div class="t">AI disclosure on every call</div><div class="d">Agent states it's an automated assistant as the first line.</div></div>
-        <div class="big">100%</div>
+        <div class="big" id="cmp-disc">—</div>
       </div>
       <div class="cmp-item">
         <div class="ico" style="background:rgba(250,178,25,.18); color:#8a5a00">⟳</div>
         <div><div class="t">No-answer retries (capped)</div><div class="d">One polite retry, then rests — no repeat-dialing.</div></div>
-        <div class="big">7</div>
+        <div class="big" id="cmp-retries">—</div>
       </div>
     </div>
   </div>
@@ -268,82 +272,222 @@
     <div class="step"><div class="k">STEP 5</div><div class="h">Logged & tracked</div><div class="p">Outcome saved; sales notified.</div></div>
   </div>
 
-  <footer>
-    <b>Note:</b> All figures on this page are illustrative sample data for design review — the live dashboard reads real numbers from the 401 lead database once the system is activated. Calling guidance reflects general TCPA best practices, not legal advice. Prepared by Bofill Technologies.
+  <footer id="footer">
+    <b>Note:</b> <span id="footnote">Figures update live from the 401 lead database. Speed-to-lead metrics are live; Workstreams 1 &amp; 3 are shown once those systems are activated.</span> Calling guidance reflects general TCPA best practices, not legal advice. Prepared by Bofill Technologies.
   </footer>
 </div>
 
 <div class="tt" id="tt"></div>
 
 <script>
-/* ---------- data (sample) ---------- */
-const funnel = [
-  {name:"Form-fills", v:52, c:"var(--seq250)"},
-  {name:"Called",     v:48, c:"var(--seq350)"},
-  {name:"Connected",  v:31, c:"var(--seq450)"},
-  {name:"Qualified",  v:19, c:"var(--seq550)"},
-  {name:"Booked",     v:14, c:"var(--seq650)"}
-];
-const days = ["Jul 25","26","27","28","29","30","31","Aug 1","2","3","4","5","6","7"];
-const leads  = [2,3,5,4,3,6,4,5,3,4,6,5,4,3];
-const booked = [0,1,1,1,0,2,1,1,1,1,2,1,1,0];
-const feed = [
-  {n:"Dana P.",   t:"Cranston",     o:"Booked consultation", cls:"c-book",  s:"0:29"},
-  {n:"Marcus L.", t:"Warwick",      o:"Warm transfer",       cls:"c-trans", s:"0:41"},
-  {n:"Sofia R.",  t:"Coventry",     o:"Qualified · callback",cls:"c-qual",  s:"0:22"},
-  {n:"Raj S.",    t:"Johnston",     o:"Booked consultation", cls:"c-book",  s:"0:37"},
-  {n:"Tom B.",    t:"Cranston",     o:"No answer · retry",   cls:"c-retry", s:"—"},
-  {n:"Ellen K.",  t:"West Warwick", o:"Opted out",           cls:"c-opt",   s:"0:12"}
-];
+/* ======================= config ======================= */
+const SUPA_URL  = "https://ldbrbpwfwhutzezbgsss.supabase.co";
+// Public "anon" key — safe to embed by design. RLS blocks direct table reads;
+// the only thing it can do here is call dashboard_metrics(), which returns
+// aggregates only (no raw PII).
+const SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkYnJicHdmd2h1dHplemJnc3NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMzEzMTYsImV4cCI6MjEwMTYwNzMxNn0.B6PV3yiqIFbg4_DzGPDU_j5ne_twC9dwJmC8I3yQY5U";
+const RPC = SUPA_URL + "/rest/v1/rpc/dashboard_metrics";
+const FORCE_LIVE = new URLSearchParams(location.search).get("live") === "1";
+const FUNNEL_COLORS = ["var(--seq250)","var(--seq350)","var(--seq450)","var(--seq550)","var(--seq650)"];
 
-/* ---------- funnel ---------- */
-const maxF = funnel[0].v;
-document.getElementById("funnel").innerHTML = funnel.map(f=>{
-  const w = Math.max(6, Math.round(f.v/maxF*100));
-  const pct = Math.round(f.v/maxF*100);
-  return `<div class="funnel-row">
-    <span class="name">${f.name}</span>
-    <div class="bar" style="width:${w}%;background:${f.c}"><span>${f.v}</span></div>
-    <span class="pct">${pct}%</span>
-  </div>`;
-}).join("");
+/* ============== illustrative sample fallback ============== */
+const SAMPLE = {
+  live:false,
+  period:"Aug 2026 · month-to-date",
+  kpis:{ speed:"34<small> sec</small>", speedFoot:'<span class="up">▼ 11s</span> vs last month',
+         leads:"52", leadsFoot:'<span class="up">▲ 18%</span> vs last month',
+         calls:"48", callsFoot:"92% of consented leads",
+         booked:"14", bookedFoot:'<span class="up">27%</span> of all leads',
+         transfers:"5", optouts:"3" },
+  funnel:[ {name:"Form-fills",v:52},{name:"Called",v:48},{name:"Connected",v:31},{name:"Qualified",v:19},{name:"Booked",v:14} ],
+  days:["Jul 25","26","27","28","29","30","31","Aug 1","2","3","4","5","6","7"],
+  leadsSeries:[2,3,5,4,3,6,4,5,3,4,6,5,4,3],
+  bookedSeries:[0,1,1,1,0,2,1,1,1,1,2,1,1,0],
+  ws1:["1,284","861","500","22"],
+  ws2:{leads:"52",resp:"34s",booked:"14",qual:"19"},
+  ws3:["2,140"],
+  compliance:{blocked:"4",optouts:"3",disc:"100%",retries:"7"},
+  feed:[
+    {name:"Dana P.",town:"Cranston",outcome:"Booked consultation",cls:"c-book",speed:"0:29"},
+    {name:"Marcus L.",town:"Warwick",outcome:"Warm transfer",cls:"c-trans",speed:"0:41"},
+    {name:"Sofia R.",town:"Coventry",outcome:"Qualified · callback",cls:"c-qual",speed:"0:22"},
+    {name:"Raj S.",town:"Johnston",outcome:"Booked consultation",cls:"c-book",speed:"0:37"},
+    {name:"Tom B.",town:"Cranston",outcome:"No answer · retry",cls:"c-retry",speed:"—"},
+    {name:"Ellen K.",town:"West Warwick",outcome:"Opted out",cls:"c-opt",speed:"0:12"}
+  ]
+};
 
-/* ---------- feed ---------- */
-document.getElementById("feed").innerHTML = feed.map(r=>`
-  <tr><td><b>${r.n}</b></td><td>${r.t}</td>
-  <td><span class="chip ${r.cls}">${r.o}</span></td>
-  <td class="num">${r.s}</td></tr>`).join("");
+/* ============== map live RPC json → view model ============== */
+function liveToModel(d){
+  const k = d.kpis || {};
+  const nn = (v,suf="")=> (v===null||v===undefined) ? "—" : (v+suf);
+  const speedFoot = (k.avg_speed_delta_sec===null||k.avg_speed_delta_sec===undefined)
+      ? "vs last month"
+      : (k.avg_speed_delta_sec < 0
+          ? `<span class="up">▼ ${Math.abs(k.avg_speed_delta_sec)}s</span> vs last month`
+          : (k.avg_speed_delta_sec > 0
+              ? `<span class="down">▲ ${k.avg_speed_delta_sec}s</span> vs last month`
+              : "no change vs last month"));
+  const leadsFoot = (k.leads_delta_pct===null||k.leads_delta_pct===undefined)
+      ? "this month"
+      : (k.leads_delta_pct >= 0
+          ? `<span class="up">▲ ${k.leads_delta_pct}%</span> vs last month`
+          : `<span class="down">▼ ${Math.abs(k.leads_delta_pct)}%</span> vs last month`);
+  const callsFoot  = (k.ai_calls_pct_consented===null||k.ai_calls_pct_consented===undefined) ? "of consented leads" : `${k.ai_calls_pct_consented}% of consented leads`;
+  const bookedFoot = (k.booked_pct_of_leads===null||k.booked_pct_of_leads===undefined) ? "of all leads" : `<span class="up">${k.booked_pct_of_leads}%</span> of all leads`;
+  const cmp = d.compliance || {};
+  return {
+    live:true,
+    period:d.period_label || "month-to-date",
+    generated_at:d.generated_at || null,
+    kpis:{
+      speed: (k.avg_speed_sec===null||k.avg_speed_sec===undefined) ? "—" : `${k.avg_speed_sec}<small> sec</small>`,
+      speedFoot, leads:nn(k.leads), leadsFoot,
+      calls:nn(k.ai_calls), callsFoot,
+      booked:nn(k.booked), bookedFoot,
+      transfers:nn(k.warm_transfers), optouts:nn(k.opt_outs)
+    },
+    funnel:(d.funnel||[]).map(f=>({name:f.name, v:f.v||0})),
+    days:(d.trend||[]).map(t=>{ const dt=new Date(t.d+"T00:00"); return {mon:dt.toLocaleString("en-US",{month:"short"}), day:dt.getDate()}; }),
+    leadsSeries:(d.trend||[]).map(t=>t.leads||0),
+    bookedSeries:(d.trend||[]).map(t=>t.booked||0),
+    ws1:["—","—","—","—"],
+    ws2:{ leads:nn((d.ws2||{}).leads), resp:((d.ws2||{}).avg_response_sec==null?"—":(d.ws2.avg_response_sec+"s")),
+          booked:nn((d.ws2||{}).booked), qual:nn((d.ws2||{}).qualified) },
+    ws3:["—"],
+    compliance:{ blocked:nn(cmp.consent_gate_blocked), optouts:nn(cmp.opt_outs),
+                 disc:(cmp.ai_disclosure_pct==null?"—":cmp.ai_disclosure_pct+"%"), retries:nn(cmp.retries) },
+    feed:(d.feed||[]).map(r=>({ name:r.name||"Lead", town:r.town||"—", outcome:r.outcome||"—", cls:r.cls||"c-qual", speed:r.speed||"—" }))
+  };
+}
 
-/* ---------- trend line chart ---------- */
-(function(){
-  const W=560,H=210, m={t:14,r:16,b:26,l:26};
-  const iw=W-m.l-m.r, ih=H-m.t-m.b;
-  const maxY=8, n=days.length;
-  const x=i=> m.l + (n<=1?0:i/(n-1)*iw);
-  const y=v=> m.t + ih - (v/maxY)*ih;
-  const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+/* ============== renderers ============== */
+const $ = id => document.getElementById(id);
+
+function fmtDayLabel(day, first){ // day: {mon,day} object OR plain string (sample)
+  if(typeof day === "string") return day;
+  return first ? `${day.mon} ${day.day}` : String(day.day);
+}
+
+function render(m){
+  /* header pill + period */
+  const pill = $("modePill");
+  if(m.live){
+    pill.className = "pill live";
+    let t = "● Live";
+    if(m.generated_at){ const dt=new Date(m.generated_at); if(!isNaN(dt)) t += " · updated " + dt.toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}); }
+    pill.textContent = t;
+  } else {
+    pill.className = "pill sample";
+    pill.textContent = "◆ Sample data — illustrative";
+  }
+  $("period").textContent = m.period;
+
+  /* KPIs */
+  $("k-speed").innerHTML     = m.kpis.speed;
+  $("k-speed-foot").innerHTML= m.kpis.speedFoot;
+  $("k-leads").textContent   = m.kpis.leads;
+  $("k-leads-foot").innerHTML= m.kpis.leadsFoot;
+  $("k-calls").textContent   = m.kpis.calls;
+  $("k-calls-foot").innerHTML= m.kpis.callsFoot;
+  $("k-booked").textContent  = m.kpis.booked;
+  $("k-booked-foot").innerHTML=m.kpis.bookedFoot;
+  $("k-transfers").textContent = m.kpis.transfers;
+  $("k-optouts").textContent   = m.kpis.optouts;
+
+  /* workstream metric cards */
+  ["w1-a","w1-b","w1-c","w1-d"].forEach((id,i)=> $(id).textContent = m.ws1[i]);
+  $("w2-leads").textContent = m.ws2.leads;
+  $("w2-resp").textContent  = m.ws2.resp;
+  $("w2-booked").textContent= m.ws2.booked;
+  $("w2-qual").textContent  = m.ws2.qual;
+  $("w3-a").textContent     = m.ws3[0];
+
+  /* compliance */
+  $("cmp-blocked").textContent = m.compliance.blocked;
+  $("cmp-optouts").textContent = m.compliance.optouts;
+  $("cmp-disc").textContent    = m.compliance.disc;
+  $("cmp-retries").textContent = m.compliance.retries;
+
+  /* funnel */
+  const maxF = Math.max(1, ...m.funnel.map(f=>f.v));
+  $("funnel").innerHTML = m.funnel.map((f,i)=>{
+    const w = Math.max(6, Math.round(f.v/maxF*100));
+    const pct = Math.round(f.v/maxF*100);
+    return `<div class="funnel-row"><span class="name">${f.name}</span>
+      <div class="bar" style="width:${w}%;background:${FUNNEL_COLORS[i]||'var(--seq450)'}"><span>${f.v}</span></div>
+      <span class="pct">${pct}%</span></div>`;
+  }).join("");
+
+  /* feed */
+  const feedBody = $("feed"), feedEmpty = $("feed-empty");
+  if(m.feed.length === 0){
+    feedBody.innerHTML = ""; feedEmpty.style.display = "block";
+  } else {
+    feedEmpty.style.display = "none";
+    feedBody.innerHTML = m.feed.map(r=>`<tr><td><b>${r.name}</b></td><td>${r.town}</td>
+      <td><span class="chip ${r.cls}">${r.outcome}</span></td><td class="num">${r.speed}</td></tr>`).join("");
+  }
+
+  /* trend */
+  renderTrend(m);
+}
+
+function renderTrend(m){
+  const W=560,H=210, mg={t:14,r:16,b:26,l:26};
+  const iw=W-mg.l-mg.r, ih=H-mg.t-mg.b;
+  const L=m.leadsSeries, B=m.bookedSeries, n=L.length || 1;
+  const rawMax = Math.max(4, ...L, ...B);
+  const maxY = Math.ceil(rawMax/2)*2; // even, >=4
+  const x=i=> mg.l + (n<=1?0:i/(n-1)*iw);
+  const y=v=> mg.t + ih - (v/maxY)*ih;
   let g="";
-  for(let v=0; v<=maxY; v+=2){ g+=`<line class="gl" x1="${m.l}" y1="${y(v)}" x2="${W-m.r}" y2="${y(v)}"/><text class="axl" x="${m.l-6}" y="${y(v)+3}" text-anchor="end">${v}</text>`; }
-  [0,3,6,9,12,13].forEach(i=>{ g+=`<text class="axl" x="${x(i)}" y="${H-8}" text-anchor="middle">${days[i]}</text>`; });
-  const line=(arr,col)=>{ let d=arr.map((v,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const stepY = maxY/4 <=0 ? 1 : Math.max(1, Math.round(maxY/4));
+  for(let v=0; v<=maxY; v+=stepY){ g+=`<line class="gl" x1="${mg.l}" y1="${y(v)}" x2="${W-mg.r}" y2="${y(v)}"/><text class="axl" x="${mg.l-6}" y="${y(v)+3}" text-anchor="end">${v}</text>`; }
+  const ticks = n<=1 ? [0] : [0, Math.round((n-1)/4), Math.round((n-1)/2), Math.round(3*(n-1)/4), n-1].filter((v,i,a)=>a.indexOf(v)===i);
+  ticks.forEach(i=>{ g+=`<text class="axl" x="${x(i)}" y="${H-8}" text-anchor="middle">${fmtDayLabel(m.days[i], i===0)}</text>`; });
+  const line=(arr,col)=>{ if(!arr.length) return ""; let d=arr.map((v,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
     return `<path d="${d}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`; };
-  const pts=(arr,col,name)=> arr.map((v,i)=>`<circle class="dpt" cx="${x(i)}" cy="${y(v)}" r="4" fill="${col}" stroke="var(--surface)" stroke-width="2" data-t="${days[i]}: ${v} ${name}"/>`).join("");
+  const lbl=(day)=> typeof day==="string" ? day : `${day.mon} ${day.day}`;
+  const pts=(arr,col,name)=> arr.map((v,i)=>`<circle class="dpt" cx="${x(i)}" cy="${y(v)}" r="4" fill="${col}" stroke="var(--surface)" stroke-width="2" data-t="${lbl(m.days[i])}: ${v} ${name}"/>`).join("");
   const svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily leads and bookings, last 14 days">
-    ${g}
-    ${line(leads,"var(--s1)")}${line(booked,"var(--good)")}
-    ${pts(leads,"var(--s1)","leads")}${pts(booked,"var(--good)","booked")}
-    <text x="${x(n-1)+6}" y="${y(leads[n-1])+3}" class="axl" style="fill:var(--s1);font-weight:700">Leads</text>
-  </svg>`;
-  document.getElementById("trend").innerHTML=svg;
-  const tt=document.getElementById("tt");
+    ${g}${line(L,"var(--s1)")}${line(B,"var(--good)")}${pts(L,"var(--s1)","leads")}${pts(B,"var(--good)","booked")}</svg>`;
+  $("trend").innerHTML=svg;
+  const tt=$("tt");
   document.querySelectorAll(".dpt").forEach(c=>{
     c.addEventListener("mousemove",e=>{tt.textContent=c.getAttribute("data-t");tt.style.left=(e.clientX+12)+"px";tt.style.top=(e.clientY-10)+"px";tt.style.opacity=1;});
     c.addEventListener("mouseleave",()=>tt.style.opacity=0);
   });
+}
+
+/* ============== boot: try live, fall back to sample ============== */
+(async function boot(){
+  // Render sample first so the page is never blank.
+  render(SAMPLE);
+  try{
+    const res = await fetch(RPC, {
+      method:"POST",
+      headers:{ "apikey":SUPA_ANON, "Authorization":"Bearer "+SUPA_ANON, "Content-Type":"application/json" },
+      body:"{}"
+    });
+    if(!res.ok) throw new Error("rpc "+res.status);
+    const data = await res.json();
+    if(FORCE_LIVE || (data && data.has_data)){
+      render(liveToModel(data));
+      $("footnote").textContent = "Figures update live from the 401 lead database each time this page loads. Speed-to-lead metrics are live; Workstreams 1 & 3 populate once those systems are activated.";
+    } else {
+      // Real data exists but is empty (pre-go-live): keep the illustrative sample,
+      // labeled as sample, so the preview stays meaningful.
+      $("footnote").textContent = "Showing illustrative sample data — the live feed switches on automatically once the first real leads come through. Add ?live=1 to the URL to preview the live (currently empty) data path.";
+    }
+  }catch(e){
+    // Network/endpoint issue → stay on sample; note it.
+    $("footnote").textContent = "Showing illustrative sample data (live feed unavailable right now). Calling guidance reflects general TCPA best practices, not legal advice.";
+  }
 })();
 
-/* ---------- theme toggle ---------- */
-const root=document.documentElement, btn=document.getElementById("tgl");
+/* ============== theme toggle ============== */
+const root=document.documentElement, btn=$("tgl");
 btn.addEventListener("click",()=>{
   const dark=root.getAttribute("data-theme")==="dark";
   root.setAttribute("data-theme",dark?"light":"dark");
