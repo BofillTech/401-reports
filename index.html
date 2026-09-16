@@ -216,14 +216,40 @@
     </div>
     <div class="card ws">
       <div class="top"><span class="n">3 · Warm CRM reactivation</span></div>
-      <div><span class="status st-queued">● Queued</span></div>
+      <div><span class="status st-prog" id="w3-status">● In progress</span></div>
       <p class="desc">Re-engages the aged, opted-in lead list — cheapest & safest first (email → text → AI call), scrubbed and segmented before any dialing.</p>
       <div class="metrics">
-        <div><b id="w3-a">—</b>aged leads</div>
-        <div><b>—</b>pending consent review</div>
-        <div><b>—</b>re-engaged</div>
-        <div><b>—</b>recovered</div>
+        <div><b id="w3-a">—</b>leads imported</div>
+        <div><b id="w3-b">—</b>email-reachable</div>
+        <div><b id="w3-c">—</b>contacted</div>
+        <div><b id="w3-d">—</b>replied</div>
       </div>
+    </div>
+  </div>
+
+  <!-- REACTIVATION (WS#3) -->
+  <h2 class="sec">Warm CRM reactivation · aged lead list <span class="pill live" id="r-live" style="margin-left:8px;vertical-align:middle">● Live</span></h2>
+  <div class="grid kpis">
+    <div class="card tile"><div class="lbl"><span class="dot" style="background:var(--s7)"></span>Leads imported</div><div class="val" id="r-total">—</div><div class="foot">house + land sellers</div></div>
+    <div class="card tile"><div class="lbl"><span class="dot" style="background:var(--s3)"></span>Email-reachable</div><div class="val" id="r-email">—</div><div class="foot">safe to email now</div></div>
+    <div class="card tile"><div class="lbl"><span class="dot" style="background:var(--s4)"></span>Mail-only</div><div class="val" id="r-mail">—</div><div class="foot">direct mail</div></div>
+    <div class="card tile"><div class="lbl"><span class="dot" style="background:var(--s1)"></span>Contacted</div><div class="val" id="r-contacted">—</div><div class="foot">sequence sent</div></div>
+    <div class="card tile"><div class="lbl"><span class="dot" style="background:var(--good)"></span>Replied</div><div class="val" id="r-replied">—</div><div class="foot">warm responses</div></div>
+    <div class="card tile"><div class="lbl"><span class="dot" style="background:var(--good)"></span>Appointments</div><div class="val" id="r-appt">—</div><div class="foot">booked from reactivation</div></div>
+  </div>
+  <div class="grid cols2" style="margin-top:14px">
+    <div class="card">
+      <div class="cardhead"><h3>Where the list stands</h3><span class="note">status of imported leads</span></div>
+      <div id="r-funnel"></div>
+    </div>
+    <div class="card">
+      <div class="cardhead"><h3>By type &amp; channel</h3><span class="note">what we can do with each</span></div>
+      <div id="r-typesplit" style="display:flex;gap:22px;margin:2px 0 12px">
+        <div><b id="r-house" style="font-size:18px;font-weight:750">—</b> <span style="color:var(--muted);font-size:12px">house sellers</span></div>
+        <div><b id="r-land" style="font-size:18px;font-weight:750">—</b> <span style="color:var(--muted);font-size:12px">land sellers</span></div>
+      </div>
+      <div id="r-channels"></div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:10px;border-top:1px solid var(--border);padding-top:9px">Past leads: email &amp; mail are TCPA-safe now. AI calls / texts need attorney-approved consent first.</div>
     </div>
   </div>
 
@@ -287,6 +313,7 @@ const SUPA_URL  = "https://ldbrbpwfwhutzezbgsss.supabase.co";
 // aggregates only (no raw PII).
 const SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkYnJicHdmd2h1dHplemJnc3NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMzEzMTYsImV4cCI6MjEwMTYwNzMxNn0.B6PV3yiqIFbg4_DzGPDU_j5ne_twC9dwJmC8I3yQY5U";
 const RPC = SUPA_URL + "/rest/v1/rpc/dashboard_metrics";
+const RPC_REACT = SUPA_URL + "/rest/v1/rpc/reactivation_metrics";
 const FORCE_LIVE = new URLSearchParams(location.search).get("live") === "1";
 const FUNNEL_COLORS = ["var(--seq250)","var(--seq350)","var(--seq450)","var(--seq550)","var(--seq650)"];
 
@@ -484,6 +511,45 @@ function renderTrend(m){
     // Network/endpoint issue → stay on sample; note it.
     $("footnote").textContent = "Showing illustrative sample data (live feed unavailable right now). Calling guidance reflects general TCPA best practices, not legal advice.";
   }
+})();
+
+/* ============== reactivation (WS#3) ============== */
+function renderReactivation(r){
+  if(!r) return;
+  const g = id => document.getElementById(id);
+  const n = v => (v===null||v===undefined) ? "—" : v;
+  const set = (id,v)=>{ const el=g(id); if(el) el.textContent = n(v); };
+  set("r-total", r.total); set("r-email", r.email); set("r-mail", r.mail);
+  set("r-contacted", r.contacted); set("r-replied", r.replied); set("r-appt", r.appointment);
+  set("r-house", r.house); set("r-land", r.land);
+  // ws#3 card
+  set("w3-a", r.total); set("w3-b", r.email); set("w3-c", r.contacted); set("w3-d", r.replied);
+  // status funnel
+  const steps=[["New",r.new],["Queued",r.queued],["Contacted",r.contacted],["Replied",r.replied],["Appointment",r.appointment]];
+  const maxS=Math.max(1, ...steps.map(s=>s[1]||0));
+  const cols=["var(--seq250)","var(--seq350)","var(--seq450)","var(--seq550)","var(--seq650)"];
+  const fn=g("r-funnel");
+  if(fn) fn.innerHTML = steps.map((s,i)=>{
+    const v=s[1]||0, w=Math.max(6,Math.round(v/maxS*100)), pct=Math.round(v/maxS*100);
+    return '<div class="funnel-row"><span class="name">'+s[0]+'</span><div class="bar" style="width:'+w+'%;background:'+cols[i]+'"><span>'+v+'</span></div><span class="pct">'+pct+'%</span></div>';
+  }).join("");
+  // channels
+  const ch=[["Email",r.email,"var(--s3)"],["Mail",r.mail,"var(--s4)"],["Phone · needs consent",r.phone_consent,"var(--critical)"]];
+  const maxC=Math.max(1, ...ch.map(c=>c[1]||0));
+  const cb=g("r-channels");
+  if(cb) cb.innerHTML = ch.map(c=>{
+    const v=c[1]||0, w=Math.max(6,Math.round(v/maxC*100));
+    return '<div class="funnel-row"><span class="name">'+c[0]+'</span><div class="bar" style="width:'+w+'%;background:'+c[2]+'"><span>'+v+'</span></div><span class="pct"></span></div>';
+  }).join("");
+}
+(async function bootReactivation(){
+  const SAMPLE_R={has_data:true,total:207,house:164,land:43,email:151,mail:55,phone_consent:1,new:207,queued:0,contacted:0,replied:0,appointment:0,dead:0,do_not_contact:0};
+  renderReactivation(SAMPLE_R);
+  try{
+    const res=await fetch(RPC_REACT,{method:"POST",headers:{"apikey":SUPA_ANON,"Authorization":"Bearer "+SUPA_ANON,"Content-Type":"application/json"},body:"{}"});
+    if(res.ok){ const d=await res.json(); if(d && d.total!==undefined) renderReactivation(d); }
+    else { const lp=document.getElementById("r-live"); if(lp){lp.className="pill sample";lp.textContent="◆ Sample";} }
+  }catch(e){ const lp=document.getElementById("r-live"); if(lp){lp.className="pill sample";lp.textContent="◆ Sample";} }
 })();
 
 /* ============== theme toggle ============== */
