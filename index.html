@@ -44,6 +44,8 @@
   .pill{font-size:11.5px; font-weight:600; padding:4px 9px; border-radius:999px; background:rgba(255,255,255,.14); color:#fff; white-space:nowrap}
   .pill.sample{background:var(--warning); color:#3a2a00}
   .pill.live{background:var(--good); color:#04310a}
+  .pill.soon{background:var(--warning); color:#3a2a00}
+  .datestamp{font-size:12px; color:#cde2fb; font-weight:500; white-space:nowrap}
   .toggle{cursor:pointer; border:1px solid rgba(255,255,255,.28); background:transparent; color:#fff; border-radius:8px; padding:5px 10px; font-size:12px; font-weight:600}
   .toggle:hover{background:rgba(255,255,255,.10)}
   /* section */
@@ -86,6 +88,7 @@
   .st-live{background:rgba(12,163,12,.13); color:var(--goodink)}
   .st-prog{background:rgba(41,120,214,.13); color:var(--seq550)}
   .st-queued{background:rgba(137,135,129,.16); color:var(--ink2)}
+  .st-soon{background:rgba(250,178,25,.18); color:#8a5a00}
   .ws p.desc{margin:2px 0 12px; font-size:12.5px; color:var(--ink2)}
   .ws .metrics{display:flex; flex-wrap:wrap; gap:14px 22px; border-top:1px solid var(--border); padding-top:11px}
   .ws .metrics div{font-size:12px; color:var(--muted)}
@@ -130,7 +133,7 @@
     <div class="brand"><span class="mark">401 HOMEBUILDERS</span><span class="sub">AI Automation Program</span></div>
     <div class="spacer"></div>
     <span class="pill sample" id="modePill">◆ Sample data — illustrative</span>
-    <span class="pill" id="period">month-to-date</span>
+    <span class="datestamp" id="period"></span>
     <button class="toggle" id="tgl">☾ Dark</button>
   </div>
 </header>
@@ -428,7 +431,7 @@ function render(m){
   $("w2-resp").textContent  = m.ws2.resp;
   $("w2-booked").textContent= m.ws2.booked;
   $("w2-qual").textContent  = m.ws2.qual;
-  $("w3-a").textContent     = m.ws3[0];
+  /* WS#3 card is populated by renderReactivation() */
 
   /* compliance */
   $("cmp-blocked").textContent = m.compliance.blocked;
@@ -487,10 +490,26 @@ function renderTrend(m){
   });
 }
 
-/* ============== boot: try live, fall back to sample ============== */
+/* ============== pre-launch (speed-to-lead not live yet) ============== */
+function renderPrelaunch(){
+  const pill=$("modePill"); pill.className="pill soon"; pill.textContent="● Launching soon";
+  $("period").textContent="As of "+new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+  ["k-speed","k-leads","k-calls","k-booked","k-transfers","k-optouts"].forEach(id=>$(id).textContent="—");
+  $("k-speed-foot").textContent="activates at go-live";
+  $("k-leads-foot").textContent="activates at go-live";
+  $("k-calls-foot").textContent="of consented leads";
+  $("k-booked-foot").textContent="of all leads";
+  $("funnel").innerHTML='<div class="empty-note">The lead funnel fills in once speed-to-lead goes live.</div>';
+  $("trend").innerHTML='<div class="empty-note">Daily activity appears here once the AI calling system is switched on.</div>';
+  $("feed").innerHTML=""; $("feed-empty").style.display="block";
+  ["cmp-blocked","cmp-optouts","cmp-disc","cmp-retries"].forEach(id=>$(id).textContent="—");
+  ["w1-a","w1-b","w1-c","w1-d","w2-leads","w2-resp","w2-booked","w2-qual"].forEach(id=>$(id).textContent="—");
+  const w2s=$("w2-status"); if(w2s){ w2s.className="status st-soon"; w2s.textContent="● Launching soon"; }
+}
+
+/* ============== boot: pre-launch by default, switch to live when data exists ============== */
 (async function boot(){
-  // Render sample first so the page is never blank.
-  render(SAMPLE);
+  renderPrelaunch();
   try{
     const res = await fetch(RPC, {
       method:"POST",
@@ -501,15 +520,12 @@ function renderTrend(m){
     const data = await res.json();
     if(FORCE_LIVE || (data && data.has_data)){
       render(liveToModel(data));
-      $("footnote").textContent = "Figures update live from the 401 lead database each time this page loads. Speed-to-lead metrics are live; Workstreams 1 & 3 populate once those systems are activated.";
+      $("footnote").textContent = "Figures update live from the 401 lead database each time this page loads.";
     } else {
-      // Real data exists but is empty (pre-go-live): keep the illustrative sample,
-      // labeled as sample, so the preview stays meaningful.
-      $("footnote").textContent = "Showing illustrative sample data — the live feed switches on automatically once the first real leads come through. Add ?live=1 to the URL to preview the live (currently empty) data path.";
+      $("footnote").textContent = "Speed-to-Lead activates automatically once the AI calling system goes live — live figures will appear here then. The Warm CRM reactivation section below is live now.";
     }
   }catch(e){
-    // Network/endpoint issue → stay on sample; note it.
-    $("footnote").textContent = "Showing illustrative sample data (live feed unavailable right now). Calling guidance reflects general TCPA best practices, not legal advice.";
+    $("footnote").textContent = "Speed-to-Lead activates once the AI calling system goes live. The Warm CRM reactivation section below is live now. Calling guidance reflects general TCPA best practices, not legal advice.";
   }
 })();
 
