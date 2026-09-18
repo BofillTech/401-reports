@@ -42,14 +42,21 @@
   /* controls */
   .controls{display:grid; grid-template-columns:repeat(6,1fr); gap:12px; align-items:end}
   .fld{display:flex; flex-direction:column; gap:5px}
+  .fld.hidden{display:none}
   .fld label{font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:var(--muted)}
   .fld select,.fld input{font:inherit; font-size:13px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--plane); color:var(--ink)}
+  .fld input:disabled,.fld select:disabled{opacity:.45; cursor:not-allowed}
   .chkrow{display:flex; align-items:center; gap:8px; height:37px}
   .chkrow input{width:16px; height:16px}
   .chkrow label{font-size:12.5px; font-weight:600; color:var(--ink2); text-transform:none; letter-spacing:0}
   .btn{cursor:pointer; border:0; background:var(--navy); color:#fff; font-weight:700; font-size:13px; padding:9px 16px; border-radius:8px; height:37px}
   .btn:hover{background:#0a2c58}
   .btn:disabled{opacity:.6; cursor:default}
+  .btn.ghost{background:transparent; color:var(--navy); border:1px solid var(--navy)}
+  :root[data-theme="dark"] .btn.ghost{color:#cde2fb; border-color:#4a6da3}
+  .btn.ghost:hover{background:rgba(13,54,107,.08)}
+  .townnote{margin-top:11px; font-size:12px; color:var(--ink2); background:rgba(41,120,214,.06); border:1px solid var(--border); border-radius:8px; padding:9px 12px}
+  .townnote b{color:var(--ink)}
   /* stats */
   .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:14px}
   .tile{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px}
@@ -60,6 +67,7 @@
   .tblcard{margin-top:14px; padding:0; overflow:hidden}
   .tblhead{display:flex; align-items:center; justify-content:space-between; padding:13px 16px; border-bottom:1px solid var(--border); flex-wrap:wrap; gap:8px}
   .tblhead h3{margin:0; font-size:14.5px; font-weight:700}
+  .tblhead .right{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
   .tblhead .note{font-size:11.5px; color:var(--muted)}
   .tblscroll{max-height:620px; overflow:auto}
   table{width:100%; border-collapse:collapse; font-size:12.5px}
@@ -71,6 +79,9 @@
   .badge{font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:999px; white-space:nowrap}
   .b-abs{background:rgba(74,58,167,.13); color:var(--s7)}
   .b-loc{background:rgba(137,135,129,.16); color:var(--ink2)}
+  .b-vac{background:rgba(27,175,122,.15); color:var(--good)}
+  .b-bld{background:rgba(137,135,129,.16); color:var(--ink2)}
+  .tag{display:inline-block; margin-left:6px; font-size:10px; font-weight:700; padding:1px 6px; border-radius:999px; vertical-align:1px}
   .msg{padding:34px 16px; text-align:center; color:var(--muted); font-size:13px}
   .msg.err{color:var(--critical)}
   .spin{display:inline-block; width:15px; height:15px; border:2px solid var(--border); border-top-color:var(--seq450); border-radius:50%; animation:sp .7s linear infinite; vertical-align:-3px; margin-right:7px}
@@ -99,7 +110,7 @@
         <label>Town</label>
         <select id="f-town"></select>
       </div>
-      <div class="fld">
+      <div class="fld" id="fld-type">
         <label>Property type</label>
         <select id="f-type">
           <option value="res">Residential vacant</option>
@@ -107,11 +118,15 @@
           <option value="com">Commercial / industrial vacant</option>
         </select>
       </div>
+      <div class="fld chkrow" id="fld-vac">
+        <input id="f-vac" type="checkbox" checked />
+        <label for="f-vac">Vacant only (no building on file)</label>
+      </div>
       <div class="fld">
         <label>Min lot size (acres)</label>
         <input id="f-acres" type="number" min="0" step="0.05" value="0" />
       </div>
-      <div class="fld">
+      <div class="fld" id="fld-value">
         <label>Min assessed land ($)</label>
         <input id="f-value" type="number" min="0" step="1000" value="0" />
       </div>
@@ -127,19 +142,23 @@
       <label>Filter results (owner or address)</label>
       <input id="f-search" type="text" placeholder="type to filter the rows below…" />
     </div>
+    <div class="townnote" id="townnote"></div>
   </div>
 
   <div class="stats">
     <div class="tile"><div class="lbl">Matching parcels</div><div class="val" id="s-total">—</div><div class="foot" id="s-total-f">in the assessor database</div></div>
     <div class="tile"><div class="lbl">Absentee-owned</div><div class="val" id="s-abs">—</div><div class="foot">mailing address out of town</div></div>
-    <div class="tile"><div class="lbl">Assessed land value</div><div class="val" id="s-val">—</div><div class="foot" id="s-val-f">of loaded parcels</div></div>
-    <div class="tile"><div class="lbl">Loaded below</div><div class="val" id="s-loaded">—</div><div class="foot">top by land value</div></div>
+    <div class="tile"><div class="lbl" id="s-val-l">Assessed land value</div><div class="val" id="s-val">—</div><div class="foot" id="s-val-f">of loaded parcels</div></div>
+    <div class="tile"><div class="lbl">Shown below</div><div class="val" id="s-loaded">—</div><div class="foot" id="s-loaded-f">after filters</div></div>
   </div>
 
   <div class="card tblcard">
     <div class="tblhead">
       <h3>Results</h3>
-      <span class="note" id="tbl-note">Click a column to sort. Cold owners are direct-mail targets (TCPA — never AI-called).</span>
+      <div class="right">
+        <span class="note" id="tbl-note">Click a column to sort. Cold owners are direct-mail targets (TCPA — never AI-called).</span>
+        <button class="btn ghost" id="export" disabled>⬇ Export shown rows (CSV)</button>
+      </div>
     </div>
     <div class="tblscroll">
       <table>
@@ -157,20 +176,41 @@
 </div>
 
 <script>
-/* ============ town sources (parcels-with-owner FeatureServers) ============ */
+/* ============ town sources (parcels-with-owner FeatureServers) ============
+   Each town declares how to find vacant land + which fields carry owner/value.
+   vacantMode "useCode"    -> server filters on a land-use description (Providence)
+   vacantMode "noBuilding" -> town has no use code; vacant is inferred from a
+                              buildings table keyed by parcel # (Warwick / AxisGIS)
+============================================================================ */
 const TOWNS = {
   providence: {
-    label: "Providence",
-    url: "https://services6.arcgis.com/wv9mHoqblhTsnqdG/arcgis/rest/services/Parcels_wCAMA/FeatureServer/0/query",
-    ownerCity: "PROVIDENCE",
-    f: { owner:"Owner1", ocity:"OwnerCity", ostate:"OwnerState", addr:"ParcAddress",
-         plat:"PlatNum", block:"BlockNum", lot:"LotNum", use:"MuniUseCodeDesc",
-         ac:"AreaAC", sf:"AreaSF", land:"AssessedValueLand", zone:"ZONING" },
-    vacRes: ["Residential Vacant"],
-    vacCom: ["Commercial Ind Vct"]
+    label:"Providence", state:"RI",
+    url:"https://services6.arcgis.com/wv9mHoqblhTsnqdG/arcgis/rest/services/Parcels_wCAMA/FeatureServer/0/query",
+    ownerCity:"PROVIDENCE",
+    vacantMode:"useCode", hasValue:true, hasZone:true, approxAcres:false,
+    f:{ owner:"Owner1", ocity:"OwnerCity", ostate:"OwnerState", ozip:"Owner_Zip", oaddr:null,
+        paddr:"ParcAddress", pzip:"ZIP_POSTAL",
+        plat:"PlatNum", block:"BlockNum", lot:"LotNum",
+        use:"MuniUseCodeDesc", ac:"AreaAC", land:"AssessedValueLand", zone:"ZONING" },
+    vacRes:["Residential Vacant"], vacCom:["Commercial Ind Vct"],
+    note:"<b>Providence</b> — live city CAMA layer. Vacant land is filtered by the city's use code. "+
+         "The layer carries the owner's name and mailing city/state/zip but <b>not the mailing street</b>, "+
+         "so these become a <b>BatchData skip-trace feed</b>: export → n8n → owner mailing street + phone/email."
+  },
+  warwick: {
+    label:"Warwick", state:"RI",
+    url:"https://services.arcgis.com/FULpfKXdE8WhHh1Y/arcgis/rest/services/AxisGISDataSync/FeatureServer/20/query",
+    bldgUrl:"https://services.arcgis.com/FULpfKXdE8WhHh1Y/arcgis/rest/services/AxisGISDataSync/FeatureServer/91/query",
+    ownerCity:"WARWICK",
+    vacantMode:"noBuilding", hasValue:false, hasZone:false, approxAcres:true,
+    /* Shape__Area is Web-Mercator m²; correct for latitude (~41.70°N) then → acres */
+    areaFactor:0.00013774,
+    f:{ owner:"OwnerName", ocity:"OwnerCity", ostate:"OwnerState", ozip:"OwnerZip", oaddr:"OwnerAddress",
+        paddr:"PropertyAddress", pzip:null, pid:"ParcelNumber", geomArea:"Shape__Area" },
+    note:"<b>Warwick</b> — live AxisGIS parcel layer. Warwick's open data has <b>no use code or assessed value</b>, "+
+         "so <b>Vacant only</b> is inferred from the town's building records (a parcel with no building on file). "+
+         "Warwick <b>already lists the owner's full mailing address</b>, so these are mail-ready — no skip-trace needed."
   }
-  /* Add more towns by pointing to that town's parcels-with-owner FeatureServer
-     and mapping its field names + vacant-land use codes here. */
 };
 
 const PAGE = 1000;
@@ -186,15 +226,21 @@ const esc = s => String(s==null?"":s).replace(/'/g,"''");
 /* build the server-side WHERE clause */
 function buildWhere(){
   const t = town();
-  const type = $("f-type").value;
-  const codes = type==="res" ? t.vacRes : type==="com" ? t.vacCom : t.vacRes.concat(t.vacCom);
-  const inList = codes.map(c=>"'"+esc(c)+"'").join(",");
-  let w = t.f.use+" IN ("+inList+")";
+  let w;
+  if(t.vacantMode==="useCode"){
+    const type = $("f-type").value;
+    const codes = type==="res" ? t.vacRes : type==="com" ? t.vacCom : t.vacRes.concat(t.vacCom);
+    w = t.f.use+" IN ("+codes.map(c=>"'"+esc(c)+"'").join(",")+")";
+  } else {
+    w = "1=1"; /* no use code; vacancy inferred client-side from buildings table */
+  }
   if($("f-abs").checked){
     w += " AND "+t.f.ocity+" IS NOT NULL AND UPPER("+t.f.ocity+") <> '"+t.ownerCity+"'";
   }
-  const minVal = num($("f-value").value);
-  if(minVal>0) w += " AND "+t.f.land+" >= "+minVal;
+  if(t.hasValue){
+    const minVal = num($("f-value").value);
+    if(minVal>0) w += " AND "+t.f.land+" >= "+minVal;
+  }
   return w;
 }
 
@@ -209,32 +255,66 @@ async function fetchCount(where){
   return d.count;
 }
 
+function orderField(t){ return t.hasValue ? t.f.land+" DESC" : (t.f.geomArea||"OBJECTID")+" DESC"; }
+
 async function fetchPage(where, offset){
   const t = town(), fld = t.f;
-  const outFields = [fld.owner,fld.ocity,fld.ostate,fld.addr,fld.plat,fld.block,fld.lot,fld.use,fld.ac,fld.sf,fld.land,fld.zone].join(",");
+  const cols = [fld.owner,fld.ocity,fld.ostate,fld.ozip,fld.oaddr,fld.paddr,fld.pzip,
+                fld.plat,fld.block,fld.lot,fld.pid,fld.use,fld.ac,fld.geomArea,fld.land,fld.zone]
+               .filter(Boolean);
   const res = await fetch(t.url, {method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"},
-    body: qs({where, outFields, returnGeometry:"false", orderByFields:fld.land+" DESC",
+    body: qs({where, outFields:cols.join(","), returnGeometry:"false", orderByFields:orderField(t),
               resultOffset:offset, resultRecordCount:PAGE, f:"json"})});
   const d = await res.json();
   if(d.error) throw new Error(d.error.message||"query error");
-  const t2 = town();
-  return (d.features||[]).map(ft=>{
-    const a = ft.attributes || {};
-    const ocity = (a[fld.ocity]||"").toString().trim();
-    const absentee = ocity && ocity.toUpperCase() !== t2.ownerCity;
-    const plat = [a[fld.plat],a[fld.block],a[fld.lot]].filter(x=>x!=null && String(x).trim()!=="").join("-");
-    return {
-      owner: a[fld.owner]||"(owner unlisted)",
-      ownerLoc: [ocity, a[fld.ostate]].filter(Boolean).join(", ") || "—",
-      addr: a[fld.addr]||"—",
-      plat: plat||"—",
-      acres: num(a[fld.ac]),
-      land: num(a[fld.land]),
-      zone: (a[fld.zone]||"").toString().trim() || "—",
-      use: a[fld.use]||"—",
-      absentee
-    };
-  });
+  const rows = (d.features||[]).map(ft=>mapFeature(ft.attributes||{}, t));
+  if(t.vacantMode==="noBuilding") await tagBuildings(rows, t);
+  return rows;
+}
+
+function mapFeature(a, t){
+  const fld = t.f;
+  const ocity = (a[fld.ocity]||"").toString().trim();
+  const absentee = ocity && ocity.toUpperCase() !== t.ownerCity;
+  let plat;
+  if(fld.pid) plat = (a[fld.pid]||"").toString().trim();
+  else plat = [a[fld.plat],a[fld.block],a[fld.lot]].filter(x=>x!=null && String(x).trim()!=="").join("-");
+  let acres = 0;
+  if(fld.ac) acres = num(a[fld.ac]);
+  else if(fld.geomArea) acres = num(a[fld.geomArea]) * (t.areaFactor||0);
+  return {
+    owner: (a[fld.owner]||"").toString().trim() || "(owner unlisted)",
+    ocity, ostate:(a[fld.ostate]||"").toString().trim(), ozip:(a[fld.ozip]||"").toString().trim(),
+    oaddr: fld.oaddr ? (a[fld.oaddr]||"").toString().trim() : "",
+    ownerLoc: [ocity, a[fld.ostate]].filter(Boolean).join(", ") || "—",
+    addr: (a[fld.paddr]||"").toString().trim() || "—",
+    pzip: fld.pzip ? (a[fld.pzip]||"").toString().trim() : "",
+    plat: plat||"—",
+    pid: fld.pid ? (a[fld.pid]||"").toString().trim() : "",
+    acres,
+    land: t.hasValue ? num(a[fld.land]) : 0,
+    zone: t.hasZone ? ((a[fld.zone]||"").toString().trim() || "—") : "",
+    absentee,
+    vacant: t.vacantMode==="useCode" ? true : null  /* resolved by tagBuildings otherwise */
+  };
+}
+
+/* Warwick: mark each row vacant = its parcel # has no record in the buildings table */
+async function tagBuildings(rows, t){
+  const ids = rows.map(r=>r.pid).filter(Boolean);
+  if(!ids.length) return;
+  const built = new Set();
+  for(let i=0;i<ids.length;i+=250){
+    const chunk = ids.slice(i,i+250);
+    const where = t.f.pid+" IN ("+chunk.map(x=>"'"+esc(x)+"'").join(",")+")";
+    try{
+      const res = await fetch(t.bldgUrl, {method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"},
+        body: qs({where, outFields:t.f.pid, returnDistinctValues:"true", returnGeometry:"false", f:"json"})});
+      const d = await res.json();
+      (d.features||[]).forEach(ft=>{ const p=(ft.attributes[t.f.pid]||"").toString().trim(); if(p) built.add(p); });
+    }catch(e){ /* if the buildings lookup fails, leave vacant undetermined */ }
+  }
+  rows.forEach(r=>{ r.vacant = r.pid ? !built.has(r.pid) : null; });
 }
 
 async function runSearch(reset=true){
@@ -255,11 +335,13 @@ async function runSearch(reset=true){
   }finally{ btn.disabled=false; }
 }
 
-/* apply client-side acres + text filter, plus current sort */
+/* apply client-side vacant + acres + text filter, plus current sort */
 function viewRows(){
+  const t = town();
   const minAc = num($("f-acres").value);
   const q = $("f-search").value.trim().toLowerCase();
   let r = state.rows.filter(x=> x.acres >= minAc);
+  if(t.vacantMode==="noBuilding" && $("f-vac").checked) r = r.filter(x=> x.vacant !== false);
   if(q) r = r.filter(x => (x.owner+" "+x.addr+" "+x.ownerLoc+" "+x.plat).toLowerCase().includes(q));
   const k=state.sortKey, dir=state.sortDir;
   r.sort((a,b)=>{
@@ -270,19 +352,23 @@ function viewRows(){
   return r;
 }
 
-const COLS = [
-  {k:"owner", t:"Owner"},
-  {k:"ownerLoc", t:"Owner location"},
-  {k:"addr", t:"Property address"},
-  {k:"plat", t:"Plat-Lot"},
-  {k:"acres", t:"Acres", num:true},
-  {k:"zone", t:"Zone"},
-  {k:"land", t:"Assessed land", num:true},
-  {k:"absentee", t:"Status"}
-];
+function colsFor(t){
+  const c = [
+    {k:"owner", t:"Owner"},
+    {k:"ownerLoc", t:"Owner location"},
+    {k:"addr", t:t.hasValue?"Property address":"Property address"},
+    {k:"plat", t:t.f.pid?"Parcel #":"Plat-Lot"},
+    {k:"acres", t:t.approxAcres?"Acres ≈":"Acres", num:true}
+  ];
+  if(t.hasZone) c.push({k:"zone", t:"Zone"});
+  if(t.hasValue) c.push({k:"land", t:"Assessed land", num:true});
+  c.push({k:"absentee", t:"Status"});
+  return c;
+}
 
 function renderHead(){
-  $("thead").innerHTML = COLS.map(c=>{
+  const cols = colsFor(town());
+  $("thead").innerHTML = cols.map(c=>{
     const ar = state.sortKey===c.k ? ' <span class="ar">'+(state.sortDir<0?"▼":"▲")+'</span>' : '';
     return '<th data-k="'+c.k+'"'+(c.num?' class="num"':'')+'>'+c.t+ar+'</th>';
   }).join("");
@@ -295,25 +381,90 @@ function renderHead(){
 
 function renderTable(){
   renderHead();
+  const t = town(), cols = colsFor(t);
   const r = viewRows();
   $("s-loaded").textContent = r.length.toLocaleString();
+  $("export").disabled = r.length===0;
   if(r.length===0){ $("rows").innerHTML=""; $("msg").className="msg"; $("msg").textContent="No parcels match these filters."; return; }
   $("msg").textContent="";
   $("rows").innerHTML = r.map(x=>{
-    const badge = x.absentee ? '<span class="badge b-abs">Absentee</span>' : '<span class="badge b-loc">In-town</span>';
-    return '<tr><td><b>'+x.owner+'</b></td><td>'+x.ownerLoc+'</td><td>'+x.addr+'</td><td>'+x.plat+
-      '</td><td class="num">'+(x.acres?x.acres.toFixed(2):"—")+'</td><td>'+x.zone+
-      '</td><td class="num">'+money(x.land)+'</td><td>'+badge+'</td></tr>';
+    return "<tr>"+cols.map(c=>{
+      if(c.k==="owner"){
+        let tag="";
+        if(t.vacantMode==="noBuilding") tag = x.vacant===false
+          ? '<span class="tag b-bld">has bldg</span>'
+          : (x.vacant===true ? '<span class="tag b-vac">vacant</span>' : '');
+        return "<td><b>"+x.owner+"</b>"+tag+"</td>";
+      }
+      if(c.k==="absentee"){
+        const badge = x.absentee ? '<span class="badge b-abs">Absentee</span>' : '<span class="badge b-loc">In-town</span>';
+        return "<td>"+badge+"</td>";
+      }
+      if(c.k==="acres") return '<td class="num">'+(x.acres?x.acres.toFixed(2):"—")+"</td>";
+      if(c.k==="land") return '<td class="num">'+money(x.land)+"</td>";
+      return "<td>"+(x[c.k]||"—")+"</td>";
+    }).join("")+"</tr>";
   }).join("");
 }
 
 function renderStats(){
+  const t = town();
   const loadedVal = state.rows.reduce((s,x)=>s+x.land,0);
   const absCount = state.rows.filter(x=>x.absentee).length;
   $("s-total").textContent = state.total==null ? "—" : state.total.toLocaleString();
-  $("s-total-f").textContent = $("f-abs").checked ? "absentee vacant-land parcels" : "vacant-land parcels";
+  if(t.vacantMode==="noBuilding"){
+    $("s-total-f").textContent = $("f-abs").checked ? "absentee parcels (vacant filtered as loaded)" : "parcels (vacant filtered as loaded)";
+  } else {
+    $("s-total-f").textContent = $("f-abs").checked ? "absentee vacant-land parcels" : "vacant-land parcels";
+  }
   $("s-abs").textContent = absCount.toLocaleString();
-  $("s-val").textContent = moneyShort(loadedVal);
+  if(t.hasValue){
+    $("s-val-l").textContent = "Assessed land value";
+    $("s-val").textContent = moneyShort(loadedVal);
+    $("s-val-f").textContent = "of loaded parcels";
+  } else {
+    $("s-val-l").textContent = "Assessed value";
+    $("s-val").textContent = "n/a";
+    $("s-val-f").textContent = "not in Warwick's open data";
+  }
+}
+
+/* ---- CSV export: the BatchData / direct-mail feed ---- */
+function csvCell(v){ v = v==null?"":String(v); return /[",\n\r]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; }
+function exportCsv(){
+  const t = town(), r = viewRows();
+  if(!r.length) return;
+  const head = ["Owner","PropertyStreet","PropertyCity","PropertyState","PropertyZip",
+                "MailStreet","MailCity","MailState","MailZip",
+                t.f.pid?"ParcelNumber":"PlatLot","Acres","AssessedLand","Absentee","Town"];
+  const lines = [head.join(",")];
+  r.forEach(x=>{
+    lines.push([
+      x.owner, x.addr, t.label, t.state, x.pzip,
+      x.oaddr, x.ocity, x.ostate, x.ozip,
+      x.plat, (x.acres?x.acres.toFixed(2):""), (t.hasValue?Math.round(x.land):""),
+      x.absentee?"Y":"N", t.label
+    ].map(csvCell).join(","));
+  });
+  const blob = new Blob([lines.join("\r\n")], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const stamp = new Date().toISOString().slice(0,10);
+  a.href = url; a.download = "401_"+state.townKey+"_targets_"+stamp+".csv";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1500);
+}
+
+/* show/hide town-specific controls */
+function applyTownUI(){
+  const t = town();
+  $("fld-type").classList.toggle("hidden", t.vacantMode!=="useCode");
+  $("fld-vac").classList.toggle("hidden", t.vacantMode!=="noBuilding");
+  $("fld-value").classList.toggle("hidden", !t.hasValue);
+  $("f-value").disabled = !t.hasValue;
+  $("townnote").innerHTML = t.note;
+  state.sortKey = t.hasValue ? "land" : "acres";
+  state.sortDir = -1;
 }
 
 /* boot */
@@ -321,14 +472,17 @@ function renderStats(){
   const sel=$("f-town");
   sel.innerHTML = Object.keys(TOWNS).map(k=>'<option value="'+k+'">'+TOWNS[k].label+'</option>').join("");
   sel.value = state.townKey;
-  sel.addEventListener("change", e=>{ state.townKey=e.target.value; runSearch(true); });
+  sel.addEventListener("change", e=>{ state.townKey=e.target.value; applyTownUI(); renderHead(); runSearch(true); });
   $("run").addEventListener("click", ()=>runSearch(true));
   $("loadmore").addEventListener("click", ()=>runSearch(false));
+  $("export").addEventListener("click", exportCsv);
   $("f-search").addEventListener("input", ()=>renderTable());
   $("f-acres").addEventListener("input", ()=>{ renderStats(); renderTable(); });
+  $("f-vac").addEventListener("change", ()=>renderTable());
   ["f-type","f-value","f-abs"].forEach(id=>$(id).addEventListener("change", ()=>runSearch(true)));
   const root=document.documentElement, btn=$("tgl");
   btn.addEventListener("click",()=>{ const dark=root.getAttribute("data-theme")==="dark"; root.setAttribute("data-theme",dark?"light":"dark"); btn.textContent=dark?"☾ Dark":"☀ Light"; });
+  applyTownUI();
   renderHead();
   runSearch(true);
 })();
