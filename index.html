@@ -48,6 +48,12 @@
   .datestamp{font-size:12px; color:#cde2fb; font-weight:500; white-space:nowrap}
   .toggle{cursor:pointer; border:1px solid rgba(255,255,255,.28); background:transparent; color:#fff; border-radius:8px; padding:5px 10px; font-size:12px; font-weight:600}
   .toggle:hover{background:rgba(255,255,255,.10)}
+  .subnav{background:var(--navy2)}
+  .subnav-in{max-width:1180px; margin:0 auto; padding:0 20px; display:flex; gap:2px; flex-wrap:wrap}
+  .subnav a{color:#cde2fb; font-size:12.5px; font-weight:600; text-decoration:none; padding:10px 14px; border-bottom:2px solid transparent}
+  .subnav a:hover{color:#fff}
+  .subnav a.active{color:#fff; border-bottom-color:#fff}
+  .cardlink{font-size:12px;font-weight:700;color:var(--seq550);text-decoration:none}
   /* section */
   h2.sec{font-size:12px; letter-spacing:.9px; text-transform:uppercase; color:var(--muted); font-weight:700; margin:30px 2px 12px}
   .grid{display:grid; gap:14px}
@@ -137,6 +143,12 @@
     <button class="toggle" id="tgl">☾ Dark</button>
   </div>
 </header>
+<nav class="subnav"><div class="subnav-in">
+  <a href="/" class="active">Overview</a>
+  <a href="/land.html">Land search</a>
+  <a href="/leads.html">Speed-to-lead</a>
+  <a href="/reactivation.html">Reactivation</a>
+</div></nav>
 
 <div class="wrap">
 
@@ -217,6 +229,7 @@
         <div><b id="w2-booked">—</b>booked</div>
         <div><b id="w2-qual">—</b>qualified</div>
       </div>
+      <div style="margin-top:11px"><a href="/leads.html" class="cardlink">Open speed-to-lead dashboard →</a></div>
     </div>
     <div class="card ws">
       <div class="top"><span class="n">3 · Warm CRM reactivation</span></div>
@@ -228,6 +241,7 @@
         <div><b id="w3-c">—</b>contacted</div>
         <div><b id="w3-d">—</b>replied</div>
       </div>
+      <div style="margin-top:11px"><a href="/reactivation.html" class="cardlink">Open reactivation dashboard →</a></div>
     </div>
   </div>
 
