@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>401 Homebuilders — Speed-to-Lead Dashboard</title>
+<style>
+  :root{
+    --plane:#f9f9f7; --surface:#fcfcfb;
+    --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,0.10);
+    --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s7:#4a3aa7;
+    --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --goodink:#006300;
+    --navy:#0d366b; --navy2:#104281;
+    --seq250:#86b6ef; --seq350:#5598e7; --seq450:#2a78d6; --seq550:#1c5cab; --seq650:#104281;
+  }
+  :root[data-theme="dark"]{
+    --plane:#0d0d0d; --surface:#1a1a19;
+    --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s7:#9085e9;
+    --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --goodink:#0ca30c;
+    --navy:#0d366b; --navy2:#184f95;
+    --seq250:#5598e7; --seq350:#3987e5; --seq450:#256abf; --seq550:#184f95; --seq650:#0d366b;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--plane); color:var(--ink); font-family:system-ui,-apple-system,"Segoe UI",sans-serif; font-size:14px; line-height:1.45; -webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  .wrap{max-width:1180px; margin:0 auto; padding:0 20px 56px}
+  header{background:var(--navy); color:#fff}
+  .hdr{max-width:1180px; margin:0 auto; padding:16px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap}
+  .brand{display:flex; align-items:baseline; gap:10px}
+  .brand .mark{font-weight:800; letter-spacing:.5px; font-size:20px}
+  .brand .sub{font-size:12.5px; color:#cde2fb; font-weight:500}
+  .hdr .spacer{flex:1}
+  .pill{font-size:11.5px; font-weight:600; padding:4px 9px; border-radius:999px; background:rgba(255,255,255,.14); color:#fff; white-space:nowrap}
+  .pill.sample{background:var(--warning); color:#3a2a00}
+  .pill.live{background:var(--good); color:#04310a}
+  .pill.soon{background:var(--warning); color:#3a2a00}
+  .datestamp{font-size:12px; color:#cde2fb; font-weight:500; white-space:nowrap}
+  .toggle{cursor:pointer; border:1px solid rgba(255,255,255,.28); background:transparent; color:#fff; border-radius:8px; padding:5px 10px; font-size:12px; font-weight:600}
+  .toggle:hover{background:rgba(255,255,255,.10)}
+  .subnav{background:var(--navy2)}
+  .subnav-in{max-width:1180px; margin:0 auto; padding:0 20px; display:flex; gap:2px; flex-wrap:wrap}
+  .subnav a{color:#cde2fb; font-size:12.5px; font-weight:600; text-decoration:none; padding:10px 14px; border-bottom:2px solid transparent}
+  .subnav a:hover{color:#fff}
+  .subnav a.active{color:#fff; border-bottom-color:#fff}
+  h2.sec{font-size:12px; letter-spacing:.9px; text-transform:uppercase; color:var(--muted); font-weight:700; margin:30px 2px 12px}
+  .grid{display:grid; gap:14px}
+  .kpis{grid-template-columns:repeat(6,1fr)}
+  .cols2{grid-template-columns:1.05fr .95fr}
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 16px 15px}
+  .tile .lbl{font-size:11.5px; color:var(--ink2); font-weight:600; display:flex; align-items:center; gap:6px}
+  .tile .val{font-size:29px; font-weight:750; margin-top:7px; letter-spacing:-.5px}
+  .tile .val small{font-size:14px; color:var(--muted); font-weight:600; letter-spacing:0}
+  .tile .foot{font-size:11.5px; margin-top:5px; color:var(--muted)}
+  .up{color:var(--goodink); font-weight:700}
+  .down{color:var(--critical); font-weight:700}
+  .dot{width:8px; height:8px; border-radius:50%; display:inline-block}
+  .cardhead{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:6px}
+  .cardhead h3{font-size:14.5px; margin:0; font-weight:700}
+  .cardhead .note{font-size:11.5px; color:var(--muted)}
+  .funnel-row{display:flex; align-items:center; gap:10px; margin:9px 0}
+  .funnel-row .name{width:104px; font-size:12.5px; color:var(--ink2); font-weight:600; flex:none}
+  .bar{height:26px; border-radius:5px; position:relative; min-width:34px; display:flex; align-items:center; justify-content:flex-end}
+  .bar span{color:#fff; font-size:12px; font-weight:700; padding-right:9px; font-variant-numeric:tabular-nums}
+  .funnel-row .pct{width:44px; text-align:right; font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; flex:none}
+  .legend{display:flex; gap:16px; font-size:12px; color:var(--ink2); align-items:center}
+  .legend .it{display:flex; align-items:center; gap:6px}
+  .legend .swatch{width:11px; height:11px; border-radius:3px}
+  svg{display:block; width:100%; height:auto; overflow:visible}
+  .gl{stroke:var(--grid); stroke-width:1}
+  .axl{fill:var(--muted); font-size:10.5px; font-variant-numeric:tabular-nums}
+  .dpt{cursor:pointer}
+  .empty-note{font-size:12px; color:var(--muted); padding:20px 4px; text-align:center}
+  table{width:100%; border-collapse:collapse; font-size:12.5px}
+  th{text-align:left; font-size:10.5px; letter-spacing:.6px; text-transform:uppercase; color:var(--muted); font-weight:700; padding:0 8px 8px}
+  td{padding:9px 8px; border-top:1px solid var(--border); vertical-align:middle}
+  td.num{text-align:right; font-variant-numeric:tabular-nums; color:var(--ink2)}
+  .chip{font-size:11px; font-weight:700; padding:3px 8px; border-radius:999px; display:inline-flex; align-items:center; gap:5px; white-space:nowrap}
+  .c-book{background:rgba(12,163,12,.13); color:var(--goodink)}
+  .c-trans{background:rgba(41,120,214,.13); color:var(--seq550)}
+  .c-qual{background:rgba(27,175,122,.15); color:#0c6b4a}
+  .c-retry{background:rgba(250,178,25,.18); color:#8a5a00}
+  .c-opt{background:rgba(208,59,59,.13); color:var(--critical)}
+  .cmp-item{display:flex; align-items:flex-start; gap:11px; padding:10px 0; border-top:1px solid var(--border)}
+  .cmp-item:first-of-type{border-top:0}
+  .cmp-item .ico{width:26px; height:26px; border-radius:7px; flex:none; display:flex; align-items:center; justify-content:center; font-size:14px}
+  .cmp-item .t{font-weight:650; font-size:13px}
+  .cmp-item .d{font-size:11.5px; color:var(--muted)}
+  .cmp-item .big{margin-left:auto; font-size:20px; font-weight:750; font-variant-numeric:tabular-nums}
+  .flow{display:flex; align-items:stretch; gap:0; flex-wrap:wrap}
+  .step{flex:1; min-width:120px; background:var(--surface); border:1px solid var(--border); padding:13px 13px; position:relative}
+  .step:first-child{border-top-left-radius:12px; border-bottom-left-radius:12px}
+  .step:last-child{border-top-right-radius:12px; border-bottom-right-radius:12px}
+  .step+.step{border-left:0}
+  .step .k{font-size:10.5px; color:var(--muted); font-weight:700; letter-spacing:.4px}
+  .step .h{font-weight:700; font-size:13px; margin-top:3px}
+  .step .p{font-size:11.5px; color:var(--ink2); margin-top:4px}
+  .step .arrow{position:absolute; right:-8px; top:50%; transform:translateY(-50%); z-index:2; color:var(--axis); font-size:15px; background:var(--plane); width:16px; text-align:center}
+  footer{margin-top:30px; font-size:11.5px; color:var(--muted); border-top:1px solid var(--border); padding-top:14px}
+  .tt{position:fixed; pointer-events:none; background:var(--ink); color:var(--surface); font-size:11.5px; padding:5px 8px; border-radius:6px; opacity:0; transition:opacity .08s; white-space:nowrap; z-index:50; font-weight:600}
+  @media(max-width:960px){.kpis{grid-template-columns:repeat(3,1fr)} .cols2{grid-template-columns:1fr}}
+  @media(max-width:560px){.kpis{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr">
+    <div class="brand"><span class="mark">401 HOMEBUILDERS</span><span class="sub">Speed-to-Lead</span></div>
+    <div class="spacer"></div>
+    <span class="pill sample" id="modePill">◆ Sample data — illustrative</span>
+    <span class="datestamp" id="period"></span>
+    <button class="toggle" id="tgl">☾ Dark</button>
+  </div>
+</header>
+<nav class="subnav"><div class="subnav-in">
+  <a href="/">Overview</a>
+  <a href="/land.html">Land search</a>
+  <a href="/leads.html" class="active">Speed-to-lead</a>
+  <a href="/reactivation.html">Reactivation</a>
+</div></nav>
+
+<div class="wrap">
+
+  <h2 class="sec">Inbound speed-to-lead · this month at a glance</h2>
+  <div class="grid kpis">
+    <div class="card tile"><div class="lbl"><span class="dot" style="background:var(--s1)"></span>Avg. speed to call</div><div class="val" id="k-speed">—</div><div class="foot" id="k-speed-foot">vs last month</div></div>
+    <div class="card tile"><div class="lbl"><span class="dot" style="background:var(--s3)"></span>Leads captured</div><div class="val" id="k-leads">—</div><div class="foot" id="k-leads-foot">this month</div></div>
+    <div class="card tile"><div class="lbl"><span class="dot" style="background:var(--s1)"></span>AI calls placed</div><div class="val" id="k-calls">—</div><div class="foot" id="k-calls-foot">of consented leads</div></div>
+    <div class="card tile"><div class="lbl"><span class="dot" style="background:var(--good)"></span>Consultations booked</div><div class="val" id="k-booked">—</div><div class="foot" id="k-booked-foot">of all leads</div></div>
+    <div class="card tile"><div class="lbl"><span class="dot" style="background:var(--s1)"></span>Warm transfers</div><div class="val" id="k-transfers">—</div><div class="foot">connected live to sales</div></div>
+    <div class="card tile"><div class="lbl"><span class="dot" style="background:var(--critical)"></span>Opt-outs (suppressed)</div><div class="val" id="k-optouts">—</div><div class="foot">auto-removed from calling</div></div>
+  </div>
+
+  <div class="grid cols2" style="margin-top:14px">
+    <div class="card">
+      <div class="cardhead"><h3>Lead funnel</h3><span class="note">form-fill → booked · this month</span></div>
+      <div id="funnel"></div>
+    </div>
+    <div class="card">
+      <div class="cardhead"><h3>Daily activity</h3>
+        <div class="legend">
+          <span class="it"><span class="swatch" style="background:var(--s1)"></span>Leads</span>
+          <span class="it"><span class="swatch" style="background:var(--good)"></span>Booked</span>
+        </div>
+      </div>
+      <div id="trend"></div>
+    </div>
+  </div>
+
+  <div class="grid cols2" style="margin-top:14px">
+    <div class="card">
+      <div class="cardhead"><h3>Recent activity</h3><span class="note">latest inbound calls</span></div>
+      <table>
+        <thead><tr><th>Lead</th><th>Town</th><th>Outcome</th><th style="text-align:right">Speed</th></tr></thead>
+        <tbody id="feed"></tbody>
+      </table>
+      <div class="empty-note" id="feed-empty" style="display:none">No calls yet — this fills in as leads come through.</div>
+    </div>
+    <div class="card">
+      <div class="cardhead"><h3>Compliance guardrails</h3><span class="note">TCPA · this month</span></div>
+      <div class="cmp-item">
+        <div class="ico" style="background:rgba(12,163,12,.14); color:var(--good)">✓</div>
+        <div><div class="t">Consent gate enforced</div><div class="d">Leads with no consent checkbox are logged but never called.</div></div>
+        <div class="big" id="cmp-blocked">—</div>
+      </div>
+      <div class="cmp-item">
+        <div class="ico" style="background:rgba(208,59,59,.13); color:var(--critical)">⊘</div>
+        <div><div class="t">Opt-outs honored instantly</div><div class="d">"Stop calling" → removed & suppressed on all future runs.</div></div>
+        <div class="big" id="cmp-optouts">—</div>
+      </div>
+      <div class="cmp-item">
+        <div class="ico" style="background:rgba(41,120,214,.13); color:var(--seq550)">☏</div>
+        <div><div class="t">AI disclosure on every call</div><div class="d">Agent states it's an automated assistant as the first line.</div></div>
+        <div class="big" id="cmp-disc">—</div>
+      </div>
+      <div class="cmp-item">
+        <div class="ico" style="background:rgba(250,178,25,.18); color:#8a5a00">⟳</div>
+        <div><div class="t">No-answer retries (capped)</div><div class="d">One polite retry, then rests — no repeat-dialing.</div></div>
+        <div class="big" id="cmp-retries">—</div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sec">How a lead moves through the system</h2>
+  <div class="flow">
+    <div class="step"><div class="k">STEP 1</div><div class="h">Form submitted</div><div class="p">Prospect fills the 401 website form.</div><div class="arrow">→</div></div>
+    <div class="step"><div class="k">STEP 2</div><div class="h">Consent gate</div><div class="p">Checked in code before any call.</div><div class="arrow">→</div></div>
+    <div class="step"><div class="k">STEP 3</div><div class="h">AI calls in seconds</div><div class="p">Discloses it's AI, qualifies.</div><div class="arrow">→</div></div>
+    <div class="step"><div class="k">STEP 4</div><div class="h">Book or transfer</div><div class="p">Consult booked or live hand-off.</div><div class="arrow">→</div></div>
+    <div class="step"><div class="k">STEP 5</div><div class="h">Logged & tracked</div><div class="p">Outcome saved; sales notified.</div></div>
+  </div>
+
+  <footer id="footer">
+    <b>Note:</b> <span id="footnote">Figures update live from the 401 lead database. Speed-to-lead activates automatically once the AI calling system goes live.</span> Calling guidance reflects general TCPA best practices, not legal advice. Prepared by Bofill Technologies.
+  </footer>
+</div>
+
+<div class="tt" id="tt"></div>
+
+<script>
+const SUPA_URL  = "https://ldbrbpwfwhutzezbgsss.supabase.co";
+const SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkYnJicHdmd2h1dHplemJnc3NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMzEzMTYsImV4cCI6MjEwMTYwNzMxNn0.B6PV3yiqIFbg4_DzGPDU_j5ne_twC9dwJmC8I3yQY5U";
+const RPC = SUPA_URL + "/rest/v1/rpc/dashboard_metrics";
+const FORCE_LIVE = new URLSearchParams(location.search).get("live") === "1";
+const FUNNEL_COLORS = ["var(--seq250)","var(--seq350)","var(--seq450)","var(--seq550)","var(--seq650)"];
+
+const SAMPLE = {
+  live:false, period:"month-to-date",
+  kpis:{ speed:"34<small> sec</small>", speedFoot:'<span class="up">▼ 11s</span> vs last month',
+         leads:"52", leadsFoot:'<span class="up">▲ 18%</span> vs last month',
+         calls:"48", callsFoot:"92% of consented leads",
+         booked:"14", bookedFoot:'<span class="up">27%</span> of all leads',
+         transfers:"5", optouts:"3" },
+  funnel:[ {name:"Form-fills",v:52},{name:"Called",v:48},{name:"Connected",v:31},{name:"Qualified",v:19},{name:"Booked",v:14} ],
+  days:["Jul 25","26","27","28","29","30","31","Aug 1","2","3","4","5","6","7"],
+  leadsSeries:[2,3,5,4,3,6,4,5,3,4,6,5,4,3],
+  bookedSeries:[0,1,1,1,0,2,1,1,1,1,2,1,1,0],
+  compliance:{blocked:"4",optouts:"3",disc:"100%",retries:"7"},
+  feed:[
+    {name:"Dana P.",town:"Cranston",outcome:"Booked consultation",cls:"c-book",speed:"0:29"},
+    {name:"Marcus L.",town:"Warwick",outcome:"Warm transfer",cls:"c-trans",speed:"0:41"},
+    {name:"Sofia R.",town:"Coventry",outcome:"Qualified · callback",cls:"c-qual",speed:"0:22"},
+    {name:"Raj S.",town:"Johnston",outcome:"Booked consultation",cls:"c-book",speed:"0:37"},
+    {name:"Tom B.",town:"Cranston",outcome:"No answer · retry",cls:"c-retry",speed:"—"},
+    {name:"Ellen K.",town:"West Warwick",outcome:"Opted out",cls:"c-opt",speed:"0:12"}
+  ]
+};
+
+function liveToModel(d){
+  const k = d.kpis || {};
+  const nn = (v)=> (v===null||v===undefined) ? "—" : v;
+  const speedFoot = (k.avg_speed_delta_sec===null||k.avg_speed_delta_sec===undefined) ? "vs last month"
+      : (k.avg_speed_delta_sec < 0 ? `<span class="up">▼ ${Math.abs(k.avg_speed_delta_sec)}s</span> vs last month`
+      : (k.avg_speed_delta_sec > 0 ? `<span class="down">▲ ${k.avg_speed_delta_sec}s</span> vs last month` : "no change vs last month"));
+  const leadsFoot = (k.leads_delta_pct===null||k.leads_delta_pct===undefined) ? "this month"
+      : (k.leads_delta_pct >= 0 ? `<span class="up">▲ ${k.leads_delta_pct}%</span> vs last month` : `<span class="down">▼ ${Math.abs(k.leads_delta_pct)}%</span> vs last month`);
+  const callsFoot  = (k.ai_calls_pct_consented===null||k.ai_calls_pct_consented===undefined) ? "of consented leads" : `${k.ai_calls_pct_consented}% of consented leads`;
+  const bookedFoot = (k.booked_pct_of_leads===null||k.booked_pct_of_leads===undefined) ? "of all leads" : `<span class="up">${k.booked_pct_of_leads}%</span> of all leads`;
+  const cmp = d.compliance || {};
+  return {
+    live:true, period:d.period_label || "month-to-date", generated_at:d.generated_at || null,
+    kpis:{ speed:(k.avg_speed_sec===null||k.avg_speed_sec===undefined)?"—":`${k.avg_speed_sec}<small> sec</small>`,
+      speedFoot, leads:nn(k.leads), leadsFoot, calls:nn(k.ai_calls), callsFoot,
+      booked:nn(k.booked), bookedFoot, transfers:nn(k.warm_transfers), optouts:nn(k.opt_outs) },
+    funnel:(d.funnel||[]).map(f=>({name:f.name, v:f.v||0})),
+    days:(d.trend||[]).map(t=>{ const dt=new Date(t.d+"T00:00"); return {mon:dt.toLocaleString("en-US",{month:"short"}), day:dt.getDate()}; }),
+    leadsSeries:(d.trend||[]).map(t=>t.leads||0),
+    bookedSeries:(d.trend||[]).map(t=>t.booked||0),
+    compliance:{ blocked:nn(cmp.consent_gate_blocked), optouts:nn(cmp.opt_outs),
+      disc:(cmp.ai_disclosure_pct==null?"—":cmp.ai_disclosure_pct+"%"), retries:nn(cmp.retries) },
+    feed:(d.feed||[]).map(r=>({ name:r.name||"Lead", town:r.town||"—", outcome:r.outcome||"—", cls:r.cls||"c-qual", speed:r.speed||"—" }))
+  };
+}
+
+const $ = id => document.getElementById(id);
+function fmtDayLabel(day, first){ if(typeof day==="string") return day; return first ? `${day.mon} ${day.day}` : String(day.day); }
+
+function render(m){
+  const pill = $("modePill");
+  if(m.live){
+    pill.className="pill live"; let t="● Live";
+    if(m.generated_at){ const dt=new Date(m.generated_at); if(!isNaN(dt)) t += " · updated " + dt.toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}); }
+    pill.textContent=t;
+  } else { pill.className="pill sample"; pill.textContent="◆ Sample data — illustrative"; }
+  $("period").textContent = m.period;
+  $("k-speed").innerHTML=m.kpis.speed; $("k-speed-foot").innerHTML=m.kpis.speedFoot;
+  $("k-leads").textContent=m.kpis.leads; $("k-leads-foot").innerHTML=m.kpis.leadsFoot;
+  $("k-calls").textContent=m.kpis.calls; $("k-calls-foot").innerHTML=m.kpis.callsFoot;
+  $("k-booked").textContent=m.kpis.booked; $("k-booked-foot").innerHTML=m.kpis.bookedFoot;
+  $("k-transfers").textContent=m.kpis.transfers; $("k-optouts").textContent=m.kpis.optouts;
+  $("cmp-blocked").textContent=m.compliance.blocked; $("cmp-optouts").textContent=m.compliance.optouts;
+  $("cmp-disc").textContent=m.compliance.disc; $("cmp-retries").textContent=m.compliance.retries;
+  const maxF=Math.max(1, ...m.funnel.map(f=>f.v));
+  $("funnel").innerHTML=m.funnel.map((f,i)=>{ const w=Math.max(6,Math.round(f.v/maxF*100)), pct=Math.round(f.v/maxF*100);
+    return `<div class="funnel-row"><span class="name">${f.name}</span><div class="bar" style="width:${w}%;background:${FUNNEL_COLORS[i]||'var(--seq450)'}"><span>${f.v}</span></div><span class="pct">${pct}%</span></div>`; }).join("");
+  const feedBody=$("feed"), feedEmpty=$("feed-empty");
+  if(m.feed.length===0){ feedBody.innerHTML=""; feedEmpty.style.display="block"; }
+  else { feedEmpty.style.display="none"; feedBody.innerHTML=m.feed.map(r=>`<tr><td><b>${r.name}</b></td><td>${r.town}</td><td><span class="chip ${r.cls}">${r.outcome}</span></td><td class="num">${r.speed}</td></tr>`).join(""); }
+  renderTrend(m);
+}
+
+function renderTrend(m){
+  const W=560,H=210, mg={t:14,r:16,b:26,l:26};
+  const iw=W-mg.l-mg.r, ih=H-mg.t-mg.b;
+  const L=m.leadsSeries, B=m.bookedSeries, n=L.length || 1;
+  const rawMax=Math.max(4, ...L, ...B); const maxY=Math.ceil(rawMax/2)*2;
+  const x=i=> mg.l + (n<=1?0:i/(n-1)*iw); const y=v=> mg.t + ih - (v/maxY)*ih;
+  let g=""; const stepY=maxY/4<=0?1:Math.max(1,Math.round(maxY/4));
+  for(let v=0; v<=maxY; v+=stepY){ g+=`<line class="gl" x1="${mg.l}" y1="${y(v)}" x2="${W-mg.r}" y2="${y(v)}"/><text class="axl" x="${mg.l-6}" y="${y(v)+3}" text-anchor="end">${v}</text>`; }
+  const ticks=n<=1?[0]:[0,Math.round((n-1)/4),Math.round((n-1)/2),Math.round(3*(n-1)/4),n-1].filter((v,i,a)=>a.indexOf(v)===i);
+  ticks.forEach(i=>{ g+=`<text class="axl" x="${x(i)}" y="${H-8}" text-anchor="middle">${fmtDayLabel(m.days[i], i===0)}</text>`; });
+  const line=(arr,col)=>{ if(!arr.length) return ""; let d=arr.map((v,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+    return `<path d="${d}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`; };
+  const lbl=(day)=> typeof day==="string" ? day : `${day.mon} ${day.day}`;
+  const pts=(arr,col,name)=> arr.map((v,i)=>`<circle class="dpt" cx="${x(i)}" cy="${y(v)}" r="4" fill="${col}" stroke="var(--surface)" stroke-width="2" data-t="${lbl(m.days[i])}: ${v} ${name}"/>`).join("");
+  $("trend").innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily leads and bookings, last 14 days">${g}${line(L,"var(--s1)")}${line(B,"var(--good)")}${pts(L,"var(--s1)","leads")}${pts(B,"var(--good)","booked")}</svg>`;
+  const tt=$("tt");
+  document.querySelectorAll(".dpt").forEach(c=>{
+    c.addEventListener("mousemove",e=>{tt.textContent=c.getAttribute("data-t");tt.style.left=(e.clientX+12)+"px";tt.style.top=(e.clientY-10)+"px";tt.style.opacity=1;});
+    c.addEventListener("mouseleave",()=>tt.style.opacity=0);
+  });
+}
+
+function renderPrelaunch(){
+  const pill=$("modePill"); pill.className="pill soon"; pill.textContent="● Launching soon";
+  $("period").textContent="As of "+new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+  ["k-speed","k-leads","k-calls","k-booked","k-transfers","k-optouts"].forEach(id=>$(id).textContent="—");
+  $("k-speed-foot").textContent="activates at go-live"; $("k-leads-foot").textContent="activates at go-live";
+  $("k-calls-foot").textContent="of consented leads"; $("k-booked-foot").textContent="of all leads";
+  $("funnel").innerHTML='<div class="empty-note">The lead funnel fills in once speed-to-lead goes live.</div>';
+  $("trend").innerHTML='<div class="empty-note">Daily activity appears here once the AI calling system is switched on.</div>';
+  $("feed").innerHTML=""; $("feed-empty").style.display="block";
+  ["cmp-blocked","cmp-optouts","cmp-disc","cmp-retries"].forEach(id=>$(id).textContent="—");
+}
+
+(async function boot(){
+  renderPrelaunch();
+  try{
+    const res = await fetch(RPC, { method:"POST",
+      headers:{ "apikey":SUPA_ANON, "Authorization":"Bearer "+SUPA_ANON, "Content-Type":"application/json" }, body:"{}" });
+    if(!res.ok) throw new Error("rpc "+res.status);
+    const data = await res.json();
+    if(FORCE_LIVE || (data && data.has_data)){
+      render(liveToModel(data));
+      $("footnote").textContent = "Figures update live from the 401 lead database each time this page loads.";
+    } else {
+      $("footnote").textContent = "Speed-to-lead activates automatically once the AI calling system goes live — live figures will appear here then.";
+    }
+  }catch(e){
+    $("footnote").textContent = "Speed-to-lead activates once the AI calling system goes live. Calling guidance reflects general TCPA best practices, not legal advice.";
+  }
+})();
+
+const root=document.documentElement, btn=$("tgl");
+btn.addEventListener("click",()=>{ const dark=root.getAttribute("data-theme")==="dark"; root.setAttribute("data-theme",dark?"light":"dark"); btn.textContent=dark?"☾ Dark":"☀ Light"; });
+</script>
+</body>
+</html>
