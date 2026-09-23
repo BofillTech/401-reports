@@ -37,7 +37,7 @@
   /* header */
   header{background:var(--navy); color:#fff}
   .hdr{max-width:1180px; margin:0 auto; padding:16px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap}
-  .brand{display:flex; align-items:baseline; gap:10px}
+  .brand{display:flex; align-items:center; gap:12px}
   .brand .mark{font-weight:800; letter-spacing:.5px; font-size:20px}
   .brand .sub{font-size:12.5px; color:#cde2fb; font-weight:500}
   .hdr .spacer{flex:1}
@@ -53,7 +53,9 @@
   .subnav a{color:#cde2fb; font-size:12.5px; font-weight:600; text-decoration:none; padding:10px 14px; border-bottom:2px solid transparent}
   .subnav a:hover{color:#fff}
   .subnav a.active{color:#fff; border-bottom-color:#fff}
+  .topbar{position:sticky; top:0; z-index:30}
   .cardlink{font-size:12px;font-weight:700;color:var(--seq550);text-decoration:none}
+  .logo{height:32px; width:auto; display:block; background:#fff; padding:5px 9px; border-radius:7px}
   /* section */
   h2.sec{font-size:12px; letter-spacing:.9px; text-transform:uppercase; color:var(--muted); font-weight:700; margin:30px 2px 12px}
   .grid{display:grid; gap:14px}
@@ -134,9 +136,10 @@
 </style>
 </head>
 <body>
+<div class="topbar">
 <header>
   <div class="hdr">
-    <div class="brand"><span class="mark">401 HOMEBUILDERS</span><span class="sub">AI Automation Program</span></div>
+    <div class="brand"><img class="logo" src="/401hb-logo.svg" alt="401 HomeBuyers"><span class="sub">AI Automation Program</span></div>
     <div class="spacer"></div>
     <span class="pill sample" id="modePill">◆ Sample data — illustrative</span>
     <span class="datestamp" id="period"></span>
@@ -149,6 +152,7 @@
   <a href="/leads.html">Speed-to-lead</a>
   <a href="/reactivation.html">Reactivation</a>
 </div></nav>
+</div>
 
 <div class="wrap">
 
