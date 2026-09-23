@@ -97,6 +97,9 @@
   .subnav a.active{color:#fff; border-bottom-color:#fff}
   .topbar{position:sticky; top:0; z-index:30}
   .logo{height:32px; width:auto; display:block; background:#fff; padding:5px 9px; border-radius:7px}
+  .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--navy); color:#fff; padding:11px 16px; border-radius:10px; font-size:13px; font-weight:600; box-shadow:0 8px 26px rgba(0,0,0,.28); opacity:0; pointer-events:none; transition:opacity .2s; z-index:60; max-width:90vw; text-align:center}
+  .toast.show{opacity:1}
+  .toast.err{background:var(--critical)}
 </style>
 </head>
 <body>
@@ -171,6 +174,7 @@
       <h3>Results</h3>
       <div class="right">
         <span class="note" id="tbl-note">Click a column to sort. Cold owners are direct-mail targets (TCPA — never AI-called).</span>
+        <button class="btn" id="skiptrace" disabled title="Queue the shown parcels for BatchData skip-trace (owner mailing street + phone/email)">⬆ Send to skip-trace</button>
         <button class="btn ghost" id="export" disabled>⬇ Export shown rows (CSV)</button>
       </div>
     </div>
@@ -183,6 +187,7 @@
     </div>
   </div>
   <button class="btn loadmore" id="loadmore" style="display:none">Load more</button>
+  <div class="toast" id="toast"></div>
 
   <footer id="footer">
     <b>Live query</b> to the selected town's public assessor (CAMA) database via ArcGIS REST — results reflect the database in real time. Vacant-land owners are cold prospects: 401 reaches them by <b>direct mail only</b> (never AI calls), per TCPA. Prepared by Bofill Technologies.
@@ -228,6 +233,11 @@ const TOWNS = {
 };
 
 const PAGE = 1000;
+/* Supabase — queue reviewed parcels for skip-trace (anon key is public by design;
+   the queue_land_targets RPC is the only thing it can do — validated, capped insert). */
+const SUPA_URL  = "https://ldbrbpwfwhutzezbgsss.supabase.co";
+const SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkYnJicHdmd2h1dHplemJnc3NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMzEzMTYsImV4cCI6MjEwMTYwNzMxNn0.B6PV3yiqIFbg4_DzGPDU_j5ne_twC9dwJmC8I3yQY5U";
+const RPC_QUEUE = SUPA_URL + "/rest/v1/rpc/queue_land_targets";
 let state = { townKey:"providence", rows:[], total:null, offset:0, sortKey:"land", sortDir:-1, lastWhere:"" };
 
 const $ = id => document.getElementById(id);
@@ -399,6 +409,7 @@ function renderTable(){
   const r = viewRows();
   $("s-loaded").textContent = r.length.toLocaleString();
   $("export").disabled = r.length===0;
+  $("skiptrace").disabled = r.length===0;
   if(r.length===0){ $("rows").innerHTML=""; $("msg").className="msg"; $("msg").textContent="No parcels match these filters."; return; }
   $("msg").textContent="";
   $("rows").innerHTML = r.map(x=>{
@@ -469,6 +480,37 @@ function exportCsv(){
   setTimeout(()=>URL.revokeObjectURL(url), 1500);
 }
 
+/* ---- toast ---- */
+function toast(msg, isErr){
+  const t=$("toast"); if(!t) return;
+  t.textContent=msg; t.className="toast show"+(isErr?" err":"");
+  clearTimeout(t._t); t._t=setTimeout(()=>{ t.className="toast"; }, 4600);
+}
+
+/* ---- one-click: queue the shown parcels for skip-trace ---- */
+async function sendToSkiptrace(){
+  const t = town(), r = viewRows();
+  const rows = r.filter(x=> x.addr && x.addr!=="—").slice(0,1000).map(x=>({
+    street: x.addr, city: t.label, state: t.state, zip: x.pzip,
+    plat_lot: x.plat, acres: (x.acres?x.acres.toFixed(2):""),
+    assessed_land: (t.hasValue?String(Math.round(x.land)):""),
+    town: t.label, absentee: x.absentee
+  }));
+  if(!rows.length){ toast("No mailable street addresses in the current rows.", true); return; }
+  const btn=$("skiptrace"), orig=btn.textContent; btn.disabled=true; btn.textContent="Sending…";
+  try{
+    const res = await fetch(RPC_QUEUE, {method:"POST",
+      headers:{ "apikey":SUPA_ANON, "Authorization":"Bearer "+SUPA_ANON, "Content-Type":"application/json" },
+      body: JSON.stringify({ p_rows: rows })});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const d = await res.json();
+    const ins=(d&&d.inserted)||0, rec=(d&&d.received)||rows.length, dup=rec-ins;
+    toast("Sent "+rec+" parcel"+(rec===1?"":"s")+" to the skip-trace queue — "+ins+" new"+(dup>0?" ("+dup+" already queued)":"")+". BatchData enriches them on the next run.");
+  }catch(e){
+    toast("Couldn't reach the skip-trace queue: "+e.message, true);
+  }finally{ btn.disabled=false; btn.textContent=orig; }
+}
+
 /* show/hide town-specific controls */
 function applyTownUI(){
   const t = town();
@@ -490,6 +532,7 @@ function applyTownUI(){
   $("run").addEventListener("click", ()=>runSearch(true));
   $("loadmore").addEventListener("click", ()=>runSearch(false));
   $("export").addEventListener("click", exportCsv);
+  $("skiptrace").addEventListener("click", sendToSkiptrace);
   $("f-search").addEventListener("input", ()=>renderTable());
   $("f-acres").addEventListener("input", ()=>{ renderStats(); renderTable(); });
   $("f-vac").addEventListener("change", ()=>renderTable());
