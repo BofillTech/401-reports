@@ -1,0 +1,219 @@
+{
+  "name": "401 Homebuilders — WS#1 Land Skip-Trace",
+  "nodes": [
+    {
+      "id": "trig-001",
+      "name": "Run Skip-Trace Batch",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 220],
+      "parameters": {}
+    },
+    {
+      "id": "cron-001",
+      "name": "Every Morning 7am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 400],
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 7 * * *" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "set-002",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [440, 300],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a-003",
+              "name": "SUPABASE_URL",
+              "value": "https://ldbrbpwfwhutzezbgsss.supabase.co",
+              "type": "string"
+            },
+            {
+              "id": "a-004",
+              "name": "BATCH_LIMIT",
+              "value": "100",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "http-005",
+      "name": "Fetch Queue (Supabase)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.SUPABASE_URL + '/rest/v1/land_targets?status=eq.to_skiptrace&select=id,street,city,state,zip&order=created_at.asc&limit=' + $json.BATCH_LIMIT }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "supabaseApi": { "id": "REPLACE_ME", "name": "Supabase 401 (service_role)" }
+      }
+    },
+    {
+      "id": "code-006",
+      "name": "Build BatchData Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Gather the queued rows (HTTP node may emit one item per row OR a single\n// item whose json is the whole array) and build ONE BatchData skip-trace body\n// of up to 100 propertyAddress objects. Keep `rows` so results map back by id.\nconst items = $input.all();\nlet rows = [];\nif (items.length === 1 && Array.isArray(items[0].json)) rows = items[0].json;\nelse rows = items.map(i => i.json);\nrows = rows.filter(r => r && r.id && r.street);\nif (rows.length === 0) { return [{ json: { count: 0, requests: [], rows: [] } }]; }\nconst requests = rows.map(r => {\n  const pa = { street: String(r.street || '').trim(), city: String(r.city || '').trim(), state: String(r.state || 'RI').trim() };\n  if (r.zip) pa.zip = String(r.zip).trim();\n  return { propertyAddress: pa };\n});\nreturn [{ json: { count: rows.length, requests, rows } }];\n"
+      }
+    },
+    {
+      "id": "if-006b",
+      "name": "Queue Not Empty?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1100, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 2 },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c-006b1",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "noop-006c",
+      "name": "Queue Empty — Nothing to Trace",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1320, 460],
+      "parameters": {}
+    },
+    {
+      "id": "http-007",
+      "name": "BatchData — Skip Trace",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.batchdata.com/api/v1/property/skip-trace",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: $json.requests }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "REPLACE_ME", "name": "BatchData API (401)" }
+      }
+    },
+    {
+      "id": "code-008",
+      "name": "Map Results → Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 200],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Map BatchData persons back to the queued rows by normalized property address,\n// then emit one PATCH-ready item per row. Defensive about field names — if the\n// live response differs, adjust pickPhone/pickEmail/pickName below (the verified\n// shape is documented in 401_batchdata_connection.md: results.persons[]).\nconst resp = $input.first().json || {};\nconst rows = ($('Build BatchData Request').first().json.rows) || [];\nconst persons = (resp.results && resp.results.persons) || resp.persons || [];\nconst norm = s => String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]/g, '');\nfunction paOf(p) { return p.propertyAddress || p.property || p.address || {}; }\nfunction keyOf(street, city) { return norm(street) + '|' + norm(city); }\nconst byProp = {};\nfor (const p of persons) { const a = paOf(p); const k = keyOf(a.street, a.city || a.cityName); (byProp[k] = byProp[k] || []).push(p); }\nfunction pickPhones(p) { const arr = p.phoneNumbers || p.phones || p.phoneNumber || []; return (Array.isArray(arr) ? arr : [arr]).map(x => (x && (x.number || x.phone || x.phoneNumber)) || (typeof x === 'string' ? x : null)).filter(Boolean); }\nfunction pickEmails(p) { const arr = p.emails || p.emailAddresses || p.email || []; return (Array.isArray(arr) ? arr : [arr]).map(x => (x && (x.email || x.address)) || (typeof x === 'string' ? x : null)).filter(Boolean); }\nfunction pickName(p) { const n = p.name || {}; return n.full || [n.first, n.last].filter(Boolean).join(' ') || p.fullName || [p.firstName, p.lastName].filter(Boolean).join(' ') || null; }\nfunction pickMailing(p) { return p.mailingAddress || p.mailing || {}; }\nconst nowIso = new Date().toISOString();\nreturn rows.map(r => {\n  const matches = byProp[keyOf(r.street, r.city)] || [];\n  const person = matches[0];\n  if (!person) { return { json: { id: r.id, status: 'no_match', skiptraced_at: nowIso } }; }\n  const phones = pickPhones(person); const emails = pickEmails(person); const m = pickMailing(person); const pa = paOf(person);\n  return { json: {\n    id: r.id, status: 'traced', skiptraced_at: nowIso,\n    owner_name: pickName(person),\n    owner_phone: phones[0] || null,\n    owner_phone2: phones[1] || null,\n    owner_email: emails[0] || null,\n    owner_mailing_street: m.street || null,\n    owner_mailing_city: m.city || null,\n    owner_mailing_state: m.state || null,\n    owner_mailing_zip: m.zip || m.postalCode || null,\n    address_validity: pa.addressValidity || pa.validity || null,\n    skiptrace_raw: person\n  } };\n});\n"
+      }
+    },
+    {
+      "id": "http-009",
+      "name": "Write Owner Contact (Supabase)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1760, 200],
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $('Config').first().json.SUPABASE_URL + '/rest/v1/land_targets?id=eq.' + $json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify((function(){ var o = Object.assign({}, $json); delete o.id; return o; })()) }}"
+      },
+      "credentials": {
+        "supabaseApi": { "id": "REPLACE_ME", "name": "Supabase 401 (service_role)" }
+      }
+    }
+  ],
+  "connections": {
+    "Run Skip-Trace Batch": {
+      "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
+    },
+    "Every Morning 7am": {
+      "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
+    },
+    "Config": {
+      "main": [[{ "node": "Fetch Queue (Supabase)", "type": "main", "index": 0 }]]
+    },
+    "Fetch Queue (Supabase)": {
+      "main": [[{ "node": "Build BatchData Request", "type": "main", "index": 0 }]]
+    },
+    "Build BatchData Request": {
+      "main": [[{ "node": "Queue Not Empty?", "type": "main", "index": 0 }]]
+    },
+    "Queue Not Empty?": {
+      "main": [
+        [{ "node": "BatchData — Skip Trace", "type": "main", "index": 0 }],
+        [{ "node": "Queue Empty — Nothing to Trace", "type": "main", "index": 0 }]
+      ]
+    },
+    "BatchData — Skip Trace": {
+      "main": [[{ "node": "Map Results → Rows", "type": "main", "index": 0 }]]
+    },
+    "Map Results → Rows": {
+      "main": [[{ "node": "Write Owner Contact (Supabase)", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "meta": { "templateId": "401-ws1-land-skiptrace" },
+  "tags": [{ "name": "401-homebuilders" }, { "name": "ws1" }]
+}
