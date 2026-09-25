@@ -27,7 +27,7 @@
         "assignments": {
           "assignments": [
             { "id": "c1", "name": "RETELL_FROM_NUMBER", "value": "+14013861470", "type": "string" },
-            { "id": "c2", "name": "RETELL_AGENT_ID", "value": "agent_REPLACE_ME", "type": "string" },
+            { "id": "c2", "name": "RETELL_AGENT_ID", "value": "agent_1e129eec1b50463e6189709747", "type": "string" },
             { "id": "c3", "name": "TEST_PASSCODE", "value": "401demo", "type": "string" }
           ]
         },
