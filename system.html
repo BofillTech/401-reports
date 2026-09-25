@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>401 System Overview</title>
+<style>
+  :root{
+    --plane:transparent; --surface:#ffffff; --panel:#f2f3f0;
+    --ink:#0b0b0b; --ink2:#4c4b48; --muted:#8a8883;
+    --border:rgba(11,11,11,0.14);
+    --navy:#0d366b; --good:#0ca30c; --warning:#e0920a; --accent:#2a78d6;
+  }
+  :root[data-theme="dark"]{
+    --plane:transparent; --surface:#1b1b1a; --panel:#161615;
+    --ink:#ffffff; --ink2:#c9c8c2; --muted:#8a8883;
+    --border:rgba(255,255,255,0.16);
+    --navy:#12447f; --good:#25b525; --warning:#f0a92a; --accent:#4a92e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--plane); color:var(--ink); font-family:system-ui,-apple-system,"Segoe UI",sans-serif; -webkit-font-smoothing:antialiased; padding:2px 2px 8px}
+  svg{display:block; width:100%; height:auto; overflow:visible}
+  .tab{fill:var(--navy)} .tab-t{fill:#fff; font-weight:800} .tab-s{fill:#cde2fb; font-weight:600}
+  .box{fill:var(--surface); stroke:var(--border); stroke-width:1.4}
+  .box-o{fill:var(--surface); stroke:var(--good); stroke-width:1.8}
+  .box-w{fill:var(--surface); stroke:var(--warning); stroke-width:1.8}
+  .strip{fill:var(--good)} .strip-w{fill:var(--warning)}
+  .bx-t{fill:var(--ink); font-weight:700; font-size:15px} .bx-s{fill:var(--ink2); font-size:12px}
+  .arrow{stroke:var(--ink2); stroke-width:2; fill:none} .arrow-h{fill:var(--ink2)}
+  .a-lbl{fill:var(--muted); font-size:11px; font-weight:600}
+  .dot-live{fill:var(--good)} .dot-wait{fill:var(--warning)}
+  .warn{fill:var(--warning); font-weight:800; font-size:14px}
+  a.lane{cursor:pointer}
+  a.lane:hover .box, a.lane:hover .box-o, a.lane:hover .box-w{stroke:var(--accent); stroke-width:2}
+  .found{fill:var(--panel); stroke:var(--border); stroke-width:1.4}
+  .cell{fill:var(--surface); stroke:var(--border); stroke-width:1.4}
+  .cell-t{fill:var(--ink); font-weight:700; font-size:14.5px} .cell-s{fill:var(--ink2); font-size:11.5px}
+  .sec-lbl{fill:var(--muted); font-size:12px; font-weight:700; letter-spacing:.6px}
+  .leg{fill:var(--ink2); font-size:12px}
+  .cap{color:var(--ink2); font-size:12.5px; line-height:1.5; margin:12px 6px 2px; max-width:1000px}
+</style>
+</head>
+<body>
+  <svg viewBox="0 0 1180 900" role="img" aria-label="401 automation program system overview">
+    <defs>
+      <marker id="sysah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 z" class="arrow-h"/>
+      </marker>
+    </defs>
+
+    <!-- LANE 1 -->
+    <a class="lane" href="/land.html" target="_top"><title>Open the live Land Search dashboard</title>
+    <rect class="tab" x="24" y="128" width="124" height="96" rx="10"/>
+    <text class="tab-t" x="86" y="164" text-anchor="middle" font-size="13">1 · Find &amp;</text>
+    <text class="tab-t" x="86" y="181" text-anchor="middle" font-size="13">mail land</text>
+    <text class="tab-s" x="86" y="201" text-anchor="middle" font-size="10.5">owners</text>
+    <rect class="box" x="172" y="128" width="196" height="96" rx="10"/>
+    <circle class="dot-live" cx="352" cy="146" r="5"/>
+    <text class="bx-t" x="188" y="166">Assessor data</text>
+    <text class="bx-s" x="188" y="186">Providence · Warwick</text>
+    <text class="bx-s" x="188" y="203">live parcel search</text>
+    <line class="arrow" x1="368" y1="176" x2="418" y2="176" marker-end="url(#sysah)"/>
+    <text class="a-lbl" x="393" y="167" text-anchor="middle">search</text>
+    <rect class="box" x="420" y="128" width="196" height="96" rx="10"/>
+    <circle class="dot-live" cx="600" cy="146" r="5"/>
+    <text class="bx-t" x="436" y="166">Land Search tool</text>
+    <text class="bx-s" x="436" y="186">filter vacant · absentee,</text>
+    <text class="bx-s" x="436" y="203">1-click "send to skip-trace"</text>
+    <line class="arrow" x1="616" y1="176" x2="666" y2="176" marker-end="url(#sysah)"/>
+    <text class="a-lbl" x="641" y="167" text-anchor="middle">queue</text>
+    <rect class="box-w" x="668" y="128" width="196" height="96" rx="10"/>
+    <rect class="strip-w" x="668" y="128" width="6" height="96"/>
+    <circle class="dot-wait" cx="848" cy="146" r="5"/>
+    <text class="bx-t" x="686" y="166">Skip-trace</text>
+    <text class="bx-s" x="686" y="186">find owner phone/</text>
+    <text class="bx-s" x="686" y="203">address · automatic</text>
+    <line class="arrow" x1="864" y1="176" x2="914" y2="176" marker-end="url(#sysah)"/>
+    <text class="a-lbl" x="889" y="167" text-anchor="middle">mail</text>
+    <rect class="box-w" x="916" y="128" width="196" height="96" rx="10"/>
+    <rect class="strip-w" x="916" y="128" width="6" height="96"/>
+    <circle class="dot-wait" cx="1096" cy="146" r="5"/>
+    <text class="bx-t" x="936" y="166">Direct mail</text>
+    <text class="bx-s" x="936" y="186">to absentee land owners</text>
+    <text class="bx-s" x="936" y="203">(mail vendor TBD)</text>
+    </a>
+
+    <!-- LANE 2 -->
+    <a class="lane" href="/leads.html" target="_top"><title>Open the live Speed-to-Lead dashboard</title>
+    <rect class="tab" x="24" y="308" width="124" height="96" rx="10"/>
+    <text class="tab-t" x="86" y="344" text-anchor="middle" font-size="13">2 · Instant</text>
+    <text class="tab-t" x="86" y="361" text-anchor="middle" font-size="13">lead reply</text>
+    <text class="tab-s" x="86" y="381" text-anchor="middle" font-size="10.5">(speed to lead)</text>
+    <rect class="box" x="172" y="308" width="196" height="96" rx="10"/>
+    <circle class="dot-live" cx="352" cy="326" r="5"/>
+    <text class="bx-t" x="188" y="346">Website form</text>
+    <text class="bx-s" x="188" y="366">lead fills out the</text>
+    <text class="bx-s" x="188" y="383">Carrot site</text>
+    <line class="arrow" x1="368" y1="356" x2="418" y2="356" marker-end="url(#sysah)"/>
+    <text class="a-lbl" x="393" y="347" text-anchor="middle">lead</text>
+    <rect class="box-w" x="420" y="308" width="196" height="96" rx="10"/>
+    <rect class="strip-w" x="420" y="308" width="6" height="96"/>
+    <circle class="dot-wait" cx="600" cy="326" r="5"/>
+    <text class="bx-t" x="440" y="346">Automation</text>
+    <text class="bx-s" x="440" y="366">fires within seconds</text>
+    <text class="bx-s" x="440" y="383">(built · not on yet)</text>
+    <line class="arrow" x1="616" y1="356" x2="666" y2="356" marker-end="url(#sysah)"/>
+    <text class="a-lbl" x="641" y="347" text-anchor="middle">call</text>
+    <rect class="box-w" x="668" y="308" width="196" height="96" rx="10"/>
+    <rect class="strip-w" x="668" y="308" width="6" height="96"/>
+    <text class="warn" x="686" y="332">⚠</text>
+    <circle class="dot-wait" cx="848" cy="326" r="5"/>
+    <text class="bx-t" x="706" y="346">AI voice agent</text>
+    <text class="bx-s" x="686" y="366">calls &amp; books</text>
+    <text class="bx-s" x="686" y="383">the appointment</text>
+    <line class="arrow" x1="864" y1="356" x2="914" y2="356" marker-end="url(#sysah)"/>
+    <text class="a-lbl" x="889" y="347" text-anchor="middle">booked</text>
+    <rect class="box-w" x="916" y="308" width="196" height="96" rx="10"/>
+    <rect class="strip-w" x="916" y="308" width="6" height="96"/>
+    <circle class="dot-wait" cx="1096" cy="326" r="5"/>
+    <text class="bx-t" x="936" y="346">Appointment</text>
+    <text class="bx-s" x="936" y="366">on Brad's</text>
+    <text class="bx-s" x="936" y="383">calendar</text>
+    </a>
+
+    <!-- LANE 3 -->
+    <a class="lane" href="/reactivation.html" target="_top"><title>Open the live Reactivation dashboard</title>
+    <rect class="tab" x="24" y="488" width="124" height="96" rx="10"/>
+    <text class="tab-t" x="86" y="524" text-anchor="middle" font-size="13">3 · Wake up</text>
+    <text class="tab-t" x="86" y="541" text-anchor="middle" font-size="13">old leads</text>
+    <text class="tab-s" x="86" y="561" text-anchor="middle" font-size="10.5">(reactivation)</text>
+    <rect class="box" x="172" y="488" width="196" height="96" rx="10"/>
+    <circle class="dot-live" cx="352" cy="506" r="5"/>
+    <text class="bx-t" x="188" y="526">Past CRM leads</text>
+    <text class="bx-s" x="188" y="546">207 loaded · scrubbed;</text>
+    <text class="bx-s" x="188" y="563">144 queued to email</text>
+    <line class="arrow" x1="368" y1="536" x2="418" y2="536" marker-end="url(#sysah)"/>
+    <text class="a-lbl" x="393" y="527" text-anchor="middle">sort</text>
+    <rect class="box" x="420" y="488" width="196" height="96" rx="10"/>
+    <text class="warn" x="436" y="510">⚠</text>
+    <circle class="dot-live" cx="600" cy="506" r="5"/>
+    <text class="bx-t" x="456" y="526">Sort by channel</text>
+    <text class="bx-s" x="436" y="546">email · mail · phone</text>
+    <text class="bx-s" x="436" y="563">(phone needs consent)</text>
+    <line class="arrow" x1="616" y1="536" x2="666" y2="536" marker-end="url(#sysah)"/>
+    <text class="a-lbl" x="641" y="527" text-anchor="middle">email</text>
+    <rect class="box-w" x="668" y="488" width="196" height="96" rx="10"/>
+    <rect class="strip-w" x="668" y="488" width="6" height="96"/>
+    <circle class="dot-wait" cx="848" cy="506" r="5"/>
+    <text class="bx-t" x="686" y="526">Email sequence</text>
+    <text class="bx-s" x="686" y="546">auto Day 0 · 4 · 8</text>
+    <text class="bx-s" x="686" y="563">built, not on yet</text>
+    <line class="arrow" x1="864" y1="536" x2="914" y2="536" marker-end="url(#sysah)"/>
+    <text class="a-lbl" x="889" y="527" text-anchor="middle">reply</text>
+    <rect class="box-w" x="916" y="488" width="196" height="96" rx="10"/>
+    <rect class="strip-w" x="916" y="488" width="6" height="96"/>
+    <circle class="dot-wait" cx="1096" cy="506" r="5"/>
+    <text class="bx-t" x="936" y="526">Back in pipeline</text>
+    <text class="bx-s" x="936" y="546">warm replies &amp;</text>
+    <text class="bx-s" x="936" y="563">new appointments</text>
+    </a>
+
+    <line class="arrow" x1="594" y1="600" x2="594" y2="632" marker-end="url(#sysah)"/>
+    <text class="sec-lbl" x="612" y="620">every step runs on ↓</text>
+
+    <rect class="found" x="24" y="636" width="1088" height="150" rx="12"/>
+    <text class="sec-lbl" x="44" y="662">SHARED PLATFORM</text>
+    <rect class="cell" x="60" y="678" width="300" height="86" rx="10"/>
+    <text class="cell-t" x="78" y="712">Automation engine</text>
+    <text class="cell-s" x="78" y="732">connects every tool and</text>
+    <text class="cell-s" x="78" y="748">runs each step on schedule</text>
+    <rect class="cell" x="440" y="678" width="300" height="86" rx="10"/>
+    <text class="cell-t" x="458" y="712">One database</text>
+    <text class="cell-s" x="458" y="732">every parcel, lead</text>
+    <text class="cell-s" x="458" y="748">&amp; appointment</text>
+    <rect class="cell" x="820" y="678" width="256" height="86" rx="10"/>
+    <text class="cell-t" x="838" y="712">Live dashboard</text>
+    <text class="cell-s" x="838" y="732">401.bofilltech.com —</text>
+    <text class="cell-s" x="838" y="748">real-time progress</text>
+    <line class="arrow" x1="360" y1="721" x2="438" y2="721" marker-end="url(#sysah)"/>
+    <text class="a-lbl" x="399" y="712" text-anchor="middle">writes</text>
+    <line class="arrow" x1="740" y1="721" x2="818" y2="721" marker-end="url(#sysah)"/>
+    <text class="a-lbl" x="779" y="712" text-anchor="middle">reports</text>
+
+    <circle class="dot-live" cx="40" cy="828" r="5"/>
+    <text class="leg" x="52" y="832">Live now</text>
+    <circle class="dot-wait" cx="150" cy="828" r="5"/>
+    <text class="leg" x="162" y="832">Built — not switched on yet</text>
+    <text class="warn" x="404" y="833">⚠</text>
+    <text class="leg" x="420" y="832">Needs prior consent (TCPA) — cold contacts are mail-only, never AI-called</text>
+  </svg>
+  <p class="cap"><b>Three lead engines, one platform.</b> The searches and dashboards are live today; the three
+  automations are built and tested, each waiting on a switch-on step (a mail vendor for land, the consent checkbox
+  for AI calls, and email setup for reactivation). AI phone contact stays off until consent is on file — cold
+  prospects are reached by mail or email only. <b>Click any row to open its live dashboard.</b></p>
+<script>
+  try{
+    var t = new URLSearchParams(location.search).get('theme');
+    if(t) document.documentElement.setAttribute('data-theme', t);
+  }catch(e){}
+</script>
+</body>
+</html>
