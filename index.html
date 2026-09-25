@@ -131,6 +131,7 @@
   .step .arrow{position:absolute; right:-8px; top:50%; transform:translateY(-50%); z-index:2; color:var(--axis); font-size:15px; background:var(--plane); width:16px; text-align:center}
   footer{margin-top:30px; font-size:11.5px; color:var(--muted); border-top:1px solid var(--border); padding-top:14px}
   .tt{position:fixed; pointer-events:none; background:var(--ink); color:var(--surface); font-size:11.5px; padding:5px 8px; border-radius:6px; opacity:0; transition:opacity .08s; white-space:nowrap; z-index:50; font-weight:600}
+  .sysframe{width:100%; border:0; display:block; min-height:520px}
   @media(max-width:960px){.kpis{grid-template-columns:repeat(3,1fr)} .cols2,.cols3{grid-template-columns:1fr}}
   @media(max-width:560px){.kpis{grid-template-columns:repeat(2,1fr)}}
 </style>
@@ -318,6 +319,12 @@
     <div class="step"><div class="k">STEP 3</div><div class="h">AI calls in seconds</div><div class="p">Discloses it's AI, qualifies.</div><div class="arrow">→</div></div>
     <div class="step"><div class="k">STEP 4</div><div class="h">Book or transfer</div><div class="p">Consult booked or live hand-off.</div><div class="arrow">→</div></div>
     <div class="step"><div class="k">STEP 5</div><div class="h">Logged & tracked</div><div class="p">Outcome saved; sales notified.</div></div>
+  </div>
+
+  <!-- FULL SYSTEM MAP -->
+  <h2 class="sec">The full system — at a glance</h2>
+  <div class="card" style="padding:8px 8px 2px">
+    <iframe id="sysframe" class="sysframe" src="/system.html" title="401 system overview — three lead engines on one platform" scrolling="no" loading="lazy"></iframe>
   </div>
 
   <footer id="footer">
@@ -593,7 +600,20 @@ btn.addEventListener("click",()=>{
   const dark=root.getAttribute("data-theme")==="dark";
   root.setAttribute("data-theme",dark?"light":"dark");
   btn.textContent=dark?"☾ Dark":"☀ Light";
+  syncSysFrame();
 });
+
+/* ============== embedded system map: size + theme sync ============== */
+function syncSysFrame(){
+  const f=document.getElementById("sysframe"); if(!f) return;
+  try{ f.contentWindow.document.documentElement.setAttribute("data-theme", root.getAttribute("data-theme")||"light"); }catch(e){}
+  try{ const d=f.contentWindow.document; if(d && d.body){ f.style.height=(d.body.scrollHeight+6)+"px"; } }catch(e){}
+}
+(function(){
+  const f=document.getElementById("sysframe"); if(!f) return;
+  f.addEventListener("load", syncSysFrame);
+  window.addEventListener("resize", syncSysFrame);
+})();
 </script>
 </body>
 </html>
