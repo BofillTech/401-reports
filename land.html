@@ -572,14 +572,12 @@ async function runAdjacent(t){
   $("loadmore").style.display="none"; $("rows").innerHTML="";
   const vacCodes=t.useGroups.vacant.map(c=>"'"+esc(c)+"'").join(",");
   let where=t.f.use+" IN ("+vacCodes+") AND "+t.f.owner+" IS NOT NULL";
-  if(t.hasValue){ const mv=num($("f-value").value); if(mv>0) where+=" AND "+t.f.land+" >= "+mv; }
-  const minAc=num($("f-acres").value); if(minAc>0) where+=" AND "+t.f.ac+" >= "+minAc;
   const CAP=400;
   $("msg").className="msg"; $("msg").innerHTML='<span class="spin"></span>Loading vacant lots in '+t.label+'…';
   try{
     const vac=await qPost(t.url,{ where,
       outFields:"OBJECTID,"+t.f.owner+","+t.f.plat+","+t.f.block+","+t.f.lot+","+t.f.paddr+","+t.f.ac+","+t.f.land,
-      returnGeometry:"true", outSR:"102730", orderByFields:t.f.land+" DESC", resultRecordCount:String(CAP), f:"json" });
+      returnGeometry:"true", outSR:"102730", resultRecordCount:String(CAP), f:"json" });
     if(vac.error) throw new Error(vac.error.message||"query error");
     const feats=(vac.features||[]).filter(ft=>ft.geometry&&ft.geometry.rings);
     const total=feats.length, gems=[]; let done=0;
