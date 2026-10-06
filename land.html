@@ -149,6 +149,10 @@
         <input id="f-abs" type="checkbox" checked />
         <label for="f-abs">Absentee owners only</label>
       </div>
+      <div class="fld chkrow hidden" id="fld-adjacent">
+        <input id="f-adjacent" type="checkbox" />
+        <label for="f-adjacent">⌂ Adjacent-lot gems</label>
+      </div>
       <div class="fld">
         <button class="btn" id="run">Run search</button>
       </div>
@@ -221,7 +225,7 @@ const RICH = {
       residential:["Single Family","2-5 Family","Apartments","Residential Condo"],
       commercial:["Commercial I","Commercial II","Commercial Condo","Industrial","Combination"]
     },
-    note:"<b>Providence</b> — live city assessor (CAMA) layer with <b>owner name, owner location (absentee), and assessed value</b>. It has the owner's city/state but <b>not the mailing street</b>, so export → skip-trace fills in mailing street + phone/email."
+    note:"<b>Providence</b> — live city assessor (CAMA) layer with <b>owner name, owner location (absentee), and assessed value</b>. It has the owner's city/state but <b>not the mailing street</b>, so export → skip-trace fills in mailing street + phone/email. Tick <b>⌂ Adjacent-lot gems</b> to surface owners who also own the touching lot."
   },
   warwick: {
     label:"Warwick", state:"RI",
@@ -375,6 +379,8 @@ async function tagBuildings(rows,t){
 
 /* ============================ dispatch ============================ */
 async function runSearch(reset=true){
+  const a0=parseArea();
+  if(a0.mode==="rich" && a0.richKey==="providence" && $("f-adjacent") && $("f-adjacent").checked){ state.richKey="providence"; return runAdjacent(RICH.providence); }
   const btn=$("run"); btn.disabled=true;
   const a=parseArea(); state.mode=a.mode; state.richKey=a.richKey||null;
   if(reset){ state.rows=[]; state.offset=0; state.total=null; state.sortKey = (a.mode==="rich" && RICH[a.richKey].hasValue) ? "land" : "acres"; state.sortDir=-1; }
@@ -403,6 +409,12 @@ async function runSearch(reset=true){
 function viewRows(){
   const q=$("f-search").value.trim().toLowerCase();
   let r=state.rows.slice();
+  if(state.mode==="adjacent"){
+    if(q) r=r.filter(x=>(x.owner+" "+x.vlot+" "+x.home+" "+x.plat).toLowerCase().includes(q));
+    const k=state.sortKey,dir=state.sortDir;
+    r.sort((a,b)=>{let av=a[k],bv=b[k]; if(av==null)av=""; if(bv==null)bv=""; if(typeof av==="string"){av=av.toLowerCase();bv=String(bv).toLowerCase();return av<bv?-1*dir:av>bv?1*dir:0;} return (av-bv)*dir;});
+    return r;
+  }
   if(state.mode==="rich"){
     const t=richCfg(); const minAc=num($("f-acres").value); const maxAc=num($("f-acresmax").value);
     r=r.filter(x=>x.acres>=minAc && (maxAc<=0 || x.acres<=maxAc));
@@ -420,6 +432,9 @@ function viewRows(){
 }
 
 function colsFor(){
+  if(state.mode==="adjacent"){
+    return [{k:"owner",t:"Owner"},{k:"vlot",t:"Vacant lot"},{k:"plat",t:"Plat-Lot"},{k:"acres",t:"Acres",num:true},{k:"land",t:"Assessed land",num:true},{k:"home",t:"Owner's home (adjacent)"},{k:"homeUse",t:"Home type"}];
+  }
   if(state.mode==="rich"){
     const t=richCfg();
     const c=[{k:"owner",t:"Owner"},{k:"ownerLoc",t:"Owner location"},{k:"addr",t:"Property address"},
@@ -449,6 +464,17 @@ function renderTable(){
   $("s-loaded").textContent=r.length.toLocaleString();
   $("export").disabled=r.length===0;
   if($("skiptrace")) $("skiptrace").disabled=r.length===0;
+  if(state.mode==="adjacent"){
+    if(r.length===0){ $("rows").innerHTML=""; return; }
+    $("rows").innerHTML=r.map(x=>"<tr>"+cols.map(c=>{
+      if(c.k==="acres") return '<td class="num">'+(x.acres?x.acres.toFixed(2):"—")+"</td>";
+      if(c.k==="land") return '<td class="num">'+(x.land?money(x.land):"—")+"</td>";
+      if(c.k==="owner") return "<td><b>"+x.owner+"</b></td>";
+      if(c.k==="home") return "<td><b>"+x.home+"</b></td>";
+      return "<td>"+(x[c.k]||"—")+"</td>";
+    }).join("")+"</tr>").join("");
+    return;
+  }
   if(r.length===0){ $("rows").innerHTML=""; $("msg").className="msg"; $("msg").textContent="No parcels match these filters."; return; }
   $("msg").textContent="";
   if(state.mode==="rich"){
@@ -468,6 +494,14 @@ function renderTable(){
   }
 }
 function renderStats(){
+  if(state.mode==="adjacent"){
+    const owners=new Set(state.rows.map(x=>x.owner)).size;
+    const ac=state.rows.reduce((s,x)=>s+x.acres,0);
+    $("s-total").textContent=state.total==null?"—":state.total.toLocaleString(); $("s-total-f").textContent="adjacent-lot gems in "+richCfg().label;
+    $("s-b-l").textContent="Distinct owners"; $("s-b").textContent=owners.toLocaleString(); $("s-b-f").textContent="own lot + adjacent home";
+    $("s-c-l").textContent="Total acreage"; $("s-c").textContent=ac?ac.toFixed(1):"—"; $("s-c-f").textContent="of the gem lots";
+    return;
+  }
   $("s-total").textContent = state.total==null?"—":state.total.toLocaleString();
   $("s-total-f").textContent = areaName();
   if(state.mode==="rich"){
@@ -489,7 +523,11 @@ function csvCell(v){ v=v==null?"":String(v); return /[",\n\r]/.test(v)?'"'+v.rep
 function exportCsv(){
   const r=viewRows(); if(!r.length) return;
   let head, lines;
-  if(state.mode==="rich"){
+  if(state.mode==="adjacent"){
+    head=["Owner","VacantLot","PlatLot","Acres","AssessedLand","AdjacentHome","HomeType","Town"];
+    lines=[head.join(",")];
+    r.forEach(x=>lines.push([x.owner,x.vlot,x.plat,(x.acres?x.acres.toFixed(2):""),(x.land?Math.round(x.land):""),x.home,x.homeUse,richCfg().label].map(csvCell).join(",")));
+  } else if(state.mode==="rich"){
     const t=richCfg();
     head=["Owner","PropertyStreet","PropertyCity","PropertyState","PropertyZip","MailStreet","MailCity","MailState","MailZip",t.f.pid?"ParcelNumber":"PlatLot","Acres","AssessedLand","Absentee","Town"];
     lines=[head.join(",")];
@@ -508,7 +546,7 @@ function exportCsv(){
 }
 function toast(msg,isErr){ const t=$("toast"); if(!t)return; t.textContent=msg; t.className="toast show"+(isErr?" err":""); clearTimeout(t._t); t._t=setTimeout(()=>{t.className="toast";},4600); }
 async function sendToSkiptrace(){
-  if(state.mode!=="rich"){ toast("Owner append for statewide parcels is coming — for now, export the CSV.", true); return; }
+  if(state.mode==="statewide"){ toast("Owner append for statewide parcels is coming — for now, export the CSV.", true); return; }
   const t=richCfg(), r=viewRows();
   const rows=r.filter(x=>x.addr&&x.addr!=="—").slice(0,1000).map(x=>({ street:x.addr, city:t.label, state:t.state, zip:x.pzip, plat_lot:x.plat, acres:(x.acres?x.acres.toFixed(2):""), assessed_land:(t.hasValue?String(Math.round(x.land)):""), town:t.label, absentee:x.absentee }));
   if(!rows.length){ toast("No mailable street addresses in the current rows.", true); return; }
@@ -520,6 +558,62 @@ async function sendToSkiptrace(){
     toast("Sent "+rec+" parcel"+(rec===1?"":"s")+" to the skip-trace queue — "+ins+" new"+(dup>0?" ("+dup+" already queued)":"")+".");
   }catch(e){ toast("Couldn't reach the skip-trace queue: "+e.message, true); }
   finally{ btn.disabled=false; btn.textContent=orig; }
+}
+
+/* ============================ ADJACENT-LOT GEMS (owner-rich useCode town) ============================ */
+async function qPost(url,params){
+  const b=Object.keys(params).map(k=>encodeURIComponent(k)+"="+encodeURIComponent(params[k])).join("&");
+  const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:b});
+  return await r.json();
+}
+async function runAdjacent(t){
+  const btn=$("run"); btn.disabled=true;
+  state.mode="adjacent"; state.richKey="providence"; state.rows=[]; state.total=null; state.sortKey="land"; state.sortDir=-1;
+  $("loadmore").style.display="none"; $("rows").innerHTML="";
+  const vacCodes=t.useGroups.vacant.map(c=>"'"+esc(c)+"'").join(",");
+  let where=t.f.use+" IN ("+vacCodes+") AND "+t.f.owner+" IS NOT NULL";
+  if(t.hasValue){ const mv=num($("f-value").value); if(mv>0) where+=" AND "+t.f.land+" >= "+mv; }
+  const minAc=num($("f-acres").value); if(minAc>0) where+=" AND "+t.f.ac+" >= "+minAc;
+  const CAP=400;
+  $("msg").className="msg"; $("msg").innerHTML='<span class="spin"></span>Loading vacant lots in '+t.label+'…';
+  try{
+    const vac=await qPost(t.url,{ where,
+      outFields:"OBJECTID,"+t.f.owner+","+t.f.plat+","+t.f.block+","+t.f.lot+","+t.f.paddr+","+t.f.ac+","+t.f.land,
+      returnGeometry:"true", outSR:"102730", orderByFields:t.f.land+" DESC", resultRecordCount:String(CAP), f:"json" });
+    if(vac.error) throw new Error(vac.error.message||"query error");
+    const feats=(vac.features||[]).filter(ft=>ft.geometry&&ft.geometry.rings);
+    const total=feats.length, gems=[]; let done=0;
+    async function check(ft){
+      const a=ft.attributes, owner=String(a[t.f.owner]||"");
+      try{
+        const q=await qPost(t.url,{
+          geometry:JSON.stringify({rings:ft.geometry.rings,spatialReference:{wkid:102730}}),
+          geometryType:"esriGeometryPolygon", inSR:"102730", spatialRel:"esriSpatialRelIntersects",
+          distance:"10", units:"esriSRUnit_Foot",
+          where:t.f.owner+"='"+owner.replace(/'/g,"''")+"' AND OBJECTID<>"+a.OBJECTID+" AND "+t.f.use+" NOT IN ("+vacCodes+")",
+          outFields:t.f.paddr+","+t.f.use, returnGeometry:"false", resultRecordCount:"1", f:"json" });
+        const hit=(q.features||[])[0];
+        if(hit){
+          const plat=[a[t.f.plat],a[t.f.block],a[t.f.lot]].filter(x=>x!=null&&String(x).trim()!=="").join("-");
+          gems.push({ owner:owner||"(owner unlisted)", vlot:(a[t.f.paddr]||"").toString().trim()||"—", plat:plat||"—",
+            acres:num(a[t.f.ac]), land:t.hasValue?num(a[t.f.land]):0,
+            home:(hit.attributes[t.f.paddr]||"").toString().trim()||"—", homeUse:(hit.attributes[t.f.use]||"").toString().trim()||"—",
+            addr:(a[t.f.paddr]||"").toString().trim()||"—", pzip:"", ocity:"", ostate:"", ozip:"", oaddr:"", absentee:false });
+        }
+      }catch(e){}
+      done++; if(done%20===0){ $("msg").innerHTML='<span class="spin"></span>Checking '+done+' of '+total+' vacant lots for an adjacent same-owner home…'; }
+    }
+    const CONC=8; let idx=0;
+    async function worker(){ while(idx<feats.length){ const i=idx++; await check(feats[i]); } }
+    await Promise.all(Array.from({length:CONC},()=>worker()));
+    state.rows=gems; state.total=gems.length;
+    renderStats(); renderTable();
+    if(gems.length===0){
+      const capNote=(vac.exceededTransferLimit||total>=CAP) ? " (checked the first "+CAP+" — raise the min assessed value to narrow)" : "";
+      $("msg").className="msg"; $("msg").textContent="No adjacent same-owner lots in this search"+capNote+".";
+    } else { $("msg").textContent=""; }
+  }catch(e){ $("msg").className="msg err"; $("msg").textContent="Adjacent-lot search failed: "+e.message; }
+  finally{ btn.disabled=false; }
 }
 
 /* ============================ UI wiring ============================ */
@@ -540,6 +634,7 @@ function applyModeUI(){
   const a=parseArea(); const rich=a.mode==="rich"; const t=rich?RICH[a.richKey]:null;
   $("fld-abs").classList.toggle("hidden", !rich);
   $("fld-value").classList.toggle("hidden", !(rich&&t.hasValue));
+  $("fld-adjacent").classList.toggle("hidden", !(rich && a.richKey==="providence"));
   $("skiptrace").classList.toggle("hidden", !rich);
   const warwickLimited = rich && t.vacantMode==="noBuilding";
   $("tbl-note").textContent = rich ? "Click a column to sort. Cold owners are direct-mail targets (TCPA — never AI-called)." : "Click a column to sort. Owner contact is appended at skip-trace — export the rows you want.";
