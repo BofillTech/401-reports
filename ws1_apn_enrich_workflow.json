@@ -1,1 +1,209 @@
-PLACEHOLDER
+{
+  "name": "401 Homebuilders — WS#1 Land Enrich by APN (statewide)",
+  "nodes": [
+    {
+      "id": "trig-101",
+      "name": "Run APN Enrichment",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 220],
+      "parameters": {}
+    },
+    {
+      "id": "cron-101",
+      "name": "Every Morning 7:15am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 400],
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "15 7 * * *" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "set-102",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [440, 300],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            { "id": "a-101", "name": "SUPABASE_URL", "value": "https://ldbrbpwfwhutzezbgsss.supabase.co", "type": "string" },
+            { "id": "a-102", "name": "BATCH_LIMIT", "value": "100", "type": "string" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "http-105",
+      "name": "Fetch Queue (Supabase)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.SUPABASE_URL + '/rest/v1/land_targets?status=eq.to_enrich&apn=not.is.null&select=id,apn,county,city,state,plat_lot&order=created_at.asc&limit=' + $json.BATCH_LIMIT }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "supabaseApi": { "id": "REPLACE_ME", "name": "Supabase 401 (service_role)" }
+      }
+    },
+    {
+      "id": "code-106",
+      "name": "Build Lookup Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Gather queued statewide rows (APN-only) and build ONE BatchData\n// property-lookup body of up to 100 requests, each keyed by APN + county\n// (+ city/town for RI disambiguation). options.skipTrace=true asks BatchData to\n// append owner phone/email in the same call. Keep `rows` so results map back by id.\nconst items = $input.all();\nlet rows = [];\nif (items.length === 1 && Array.isArray(items[0].json)) rows = items[0].json;\nelse rows = items.map(i => i.json);\nrows = rows.filter(r => r && r.id && r.apn);\nif (rows.length === 0) { return [{ json: { count: 0, requests: [], rows: [] } }]; }\nconst requests = rows.map(r => {\n  const address = { state: String(r.state || 'RI').trim() };\n  if (r.county) address.county = String(r.county).trim();\n  if (r.city)   address.city   = String(r.city).trim();   // RI: town = municipality, helps disambiguate\n  return { address, apn: String(r.apn).trim() };\n});\nreturn [{ json: { count: rows.length, requests, rows } }];\n"
+      }
+    },
+    {
+      "id": "if-106b",
+      "name": "Queue Not Empty?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1100, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 2 },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c-106b1",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "noop-106c",
+      "name": "Queue Empty — Nothing to Enrich",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1320, 460],
+      "parameters": {}
+    },
+    {
+      "id": "http-107",
+      "name": "BatchData — Property Lookup (APN)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.batchdata.com/api/v1/property/lookup/sync",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: $json.requests, options: { skipTrace: true } }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "REPLACE_ME", "name": "BatchData API (401)" }
+      }
+    },
+    {
+      "id": "code-108",
+      "name": "Map Results → Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 200],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Map BatchData property-lookup results back to the queued rows.\n// The exact response nesting for /property/lookup/sync is confirmed on the first\n// real batch — this parser is defensive: it matches by normalized APN first, then\n// falls back to positional order (we send one request per row, in order).\n// If a field nests differently live, adjust pickName/pickMailing/pickPhones/pickEmails\n// below; the full record is always saved to skiptrace_raw for inspection.\nconst resp = $input.first().json || {};\nconst rows = ($('Build Lookup Request').first().json.rows) || [];\nconst results = resp.results || resp;\nlet props = results.properties || results.property || results.lookups || resp.properties || [];\nif (!Array.isArray(props)) props = props ? [props] : [];\nconst norm = s => String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]/g, '');\nfunction apnOf(p){ return p.apn || p.APN || p.parcelNumber || (p.ids && p.ids.apn) || (p.assessment && p.assessment.apn) || (p.parcel && p.parcel.apn) || ''; }\nfunction ownerOf(p){ return p.owner || (p.assessment && p.assessment.owner) || (p.deed && p.deed.owner) || {}; }\nfunction pickName(p){ const o = ownerOf(p); const n = o.name || o.fullName || {}; if (typeof n === 'string') return n; return n.full || [n.first, n.last].filter(Boolean).join(' ') || o.ownerName || [o.firstName, o.lastName].filter(Boolean).join(' ') || p.ownerName || null; }\nfunction pickMailing(p){ const o = ownerOf(p); return o.mailingAddress || o.mailing || p.mailingAddress || p.mailing || {}; }\nfunction personsOf(p){ const o = ownerOf(p); return p.persons || (p.skipTrace && p.skipTrace.persons) || o.persons || (p.contact && p.contact.persons) || []; }\nfunction pickPhones(p){ let out = []; for (const person of personsOf(p)) { const arr = person.phoneNumbers || person.phones || []; (Array.isArray(arr)?arr:[arr]).forEach(x => { const v = (x && (x.number || x.phone || x.phoneNumber)) || (typeof x === 'string' ? x : null); if (v) out.push(v); }); } return out; }\nfunction pickEmails(p){ let out = []; for (const person of personsOf(p)) { const arr = person.emails || person.emailAddresses || []; (Array.isArray(arr)?arr:[arr]).forEach(x => { const v = (x && (x.email || x.address)) || (typeof x === 'string' ? x : null); if (v) out.push(v); }); } return out; }\nconst byApn = {};\nprops.forEach((p, idx) => { const k = norm(apnOf(p)); if (k) (byApn[k] = byApn[k] || []).push(p); p.__idx = idx; });\nconst nowIso = new Date().toISOString();\nreturn rows.map((r, i) => {\n  let p = (byApn[norm(r.apn)] || [])[0];\n  if (!p && props.length === rows.length) p = props[i]; // positional fallback\n  if (!p) { return { json: { id: r.id, status: 'no_match', skiptraced_at: nowIso } }; }\n  const name = pickName(p); const m = pickMailing(p); const phones = pickPhones(p); const emails = pickEmails(p);\n  const matched = !!(name || m.street || phones.length || emails.length);\n  return { json: {\n    id: r.id, status: matched ? 'traced' : 'no_match', skiptraced_at: nowIso,\n    owner_name: name || null,\n    owner_phone: phones[0] || null,\n    owner_phone2: phones[1] || null,\n    owner_email: emails[0] || null,\n    owner_mailing_street: m.street || null,\n    owner_mailing_city: m.city || null,\n    owner_mailing_state: m.state || null,\n    owner_mailing_zip: m.zip || m.postalCode || null,\n    skiptrace_raw: p\n  } };\n});\n"
+      }
+    },
+    {
+      "id": "http-109",
+      "name": "Write Owner Contact (Supabase)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1760, 200],
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $('Config').first().json.SUPABASE_URL + '/rest/v1/land_targets?id=eq.' + $json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify((function(){ var o = Object.assign({}, $json); delete o.id; return o; })()) }}"
+      },
+      "credentials": {
+        "supabaseApi": { "id": "REPLACE_ME", "name": "Supabase 401 (service_role)" }
+      }
+    }
+  ],
+  "connections": {
+    "Run APN Enrichment": {
+      "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
+    },
+    "Every Morning 7:15am": {
+      "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
+    },
+    "Config": {
+      "main": [[{ "node": "Fetch Queue (Supabase)", "type": "main", "index": 0 }]]
+    },
+    "Fetch Queue (Supabase)": {
+      "main": [[{ "node": "Build Lookup Request", "type": "main", "index": 0 }]]
+    },
+    "Build Lookup Request": {
+      "main": [[{ "node": "Queue Not Empty?", "type": "main", "index": 0 }]]
+    },
+    "Queue Not Empty?": {
+      "main": [
+        [{ "node": "BatchData — Property Lookup (APN)", "type": "main", "index": 0 }],
+        [{ "node": "Queue Empty — Nothing to Enrich", "type": "main", "index": 0 }]
+      ]
+    },
+    "BatchData — Property Lookup (APN)": {
+      "main": [[{ "node": "Map Results → Rows", "type": "main", "index": 0 }]]
+    },
+    "Map Results → Rows": {
+      "main": [[{ "node": "Write Owner Contact (Supabase)", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "meta": { "templateId": "401-ws1-land-apn-enrich" },
+  "tags": [{ "name": "401-homebuilders" }, { "name": "ws1" }]
+}
