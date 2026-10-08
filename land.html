@@ -203,7 +203,7 @@
      Carries OWNER, owner location (absentee), and (Providence) assessed value.
    • Everything else (All RI, a county, any other town) -> the STATEWIDE
      RIGIS/RIDEM parcel layer. Geometry + size + land type for all 38 towns,
-     but NO owner (owner is appended later at skip-trace).
+     plus the assessor parcel number; owner is appended by APN at enrich time.
    ====================================================================== */
 const SUPA_URL  = "https://ldbrbpwfwhutzezbgsss.supabase.co";
 const SUPA_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkYnJicHdmd2h1dHplemJnc3NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwMzEzMTYsImV4cCI6MjEwMTYwNzMxNn0.B6PV3yiqIFbg4_DzGPDU_j5ne_twC9dwJmC8I3yQY5U";
@@ -518,7 +518,7 @@ function renderStats(){
   }
 }
 
-/* ============================ export / skip-trace ============================ */
+/* ============================ export / enrich ============================ */
 function csvCell(v){ v=v==null?"":String(v); return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
 function exportCsv(){
   const r=viewRows(); if(!r.length) return;
@@ -546,7 +546,24 @@ function exportCsv(){
 }
 function toast(msg,isErr){ const t=$("toast"); if(!t)return; t.textContent=msg; t.className="toast show"+(isErr?" err":""); clearTimeout(t._t); t._t=setTimeout(()=>{t.className="toast";},4600); }
 async function sendToSkiptrace(){
-  if(state.mode==="statewide"){ toast("Owner append for statewide parcels is coming — for now, export the CSV.", true); return; }
+  if(state.mode==="statewide"){
+    const r=viewRows();
+    const countyByName={}; TOWNS.forEach(t=>countyByName[t.name]=t.county);
+    const rows=r.map(x=>{
+      const apn=String(x.plat||"").replace(/^[A-Za-z]{2}\s+/,"").trim();  // "PR 078-0042-0000" -> "078-0042-0000"
+      return { apn, county:countyByName[x.town]||"", state:"RI", town:x.town, plat_lot:x.plat, acres:(x.acres?x.acres.toFixed(2):"") };
+    }).filter(x=>x.apn && x.apn!=="—");
+    if(!rows.length){ toast("No parcel numbers in the current rows to enrich.", true); return; }
+    const btn=$("skiptrace"), orig=btn.textContent; btn.disabled=true; btn.textContent="Sending…";
+    try{
+      const res=await fetch(RPC_QUEUE,{method:"POST",headers:{"apikey":SUPA_ANON,"Authorization":"Bearer "+SUPA_ANON,"Content-Type":"application/json"},body:JSON.stringify({p_rows:rows.slice(0,1000)})});
+      if(!res.ok) throw new Error("HTTP "+res.status);
+      const d=await res.json(); const ins=(d&&d.inserted)||0, rec=(d&&d.received)||rows.length, dup=rec-ins;
+      toast("Queued "+rec+" statewide parcel"+(rec===1?"":"s")+" for owner enrichment — "+ins+" new"+(dup>0?" ("+dup+" already queued)":"")+".");
+    }catch(e){ toast("Couldn't reach the enrichment queue: "+e.message, true); }
+    finally{ btn.disabled=false; btn.textContent=orig; }
+    return;
+  }
   const t=richCfg(), r=viewRows();
   const rows=r.filter(x=>x.addr&&x.addr!=="—").slice(0,1000).map(x=>({ street:x.addr, city:t.label, state:t.state, zip:x.pzip, plat_lot:x.plat, acres:(x.acres?x.acres.toFixed(2):""), assessed_land:(t.hasValue?String(Math.round(x.land)):""), town:t.label, absentee:x.absentee }));
   if(!rows.length){ toast("No mailable street addresses in the current rows.", true); return; }
@@ -633,15 +650,16 @@ function applyModeUI(){
   $("fld-abs").classList.toggle("hidden", !rich);
   $("fld-value").classList.toggle("hidden", !(rich&&t.hasValue));
   $("fld-adjacent").classList.toggle("hidden", !(rich && a.richKey==="providence"));
-  $("skiptrace").classList.toggle("hidden", !rich);
+  $("skiptrace").classList.remove("hidden");   // valid for rich (skip-trace) and statewide (APN enrich)
+  $("skiptrace").textContent = rich ? "⬆ Send to skip-trace" : "⬆ Enrich owners (by parcel #)";
   const warwickLimited = rich && t.vacantMode==="noBuilding";
-  $("tbl-note").textContent = rich ? "Click a column to sort. Cold owners are direct-mail targets (TCPA — never AI-called)." : "Click a column to sort. Owner contact is appended at skip-trace — export the rows you want.";
+  $("tbl-note").textContent = rich ? "Click a column to sort. Cold owners are direct-mail targets (TCPA — never AI-called)." : "Click a column to sort. Owner + mailing are appended by parcel number — click Enrich, or export the rows.";
   let note;
   if(rich){ note=t.note; if(warwickLimited && $("f-type").value!=="vacant") note+=" <i>(Property type other than Vacant isn't available for Warwick.)</i>"; }
   else {
     const type=$("f-type").value;
     const tl=type==="vacant"?"vacant / undeveloped land":type==="residential"?"improved residential":type==="commercial"?"commercial & industrial":"all parcel types";
-    note="<b>Statewide</b> — searching "+tl+" across "+areaName()+", live from Rhode Island's statewide parcel layer. No owner inline here (RI keeps owner per-town); export the parcels you want and skip-trace appends owner + mailing + phone. Pick <b>Providence</b> or <b>Warwick</b> (★) to see owner details inline.";
+    note="<b>Statewide</b> — searching "+tl+" across "+areaName()+", live from Rhode Island's statewide parcel layer. No owner inline here (RI keeps owner per-town), but each parcel carries its assessor <b>parcel number</b> — click <b>⬆ Enrich owners</b> to append owner + mailing (+ phone/email) by parcel number, or export the rows. Pick <b>Providence</b> or <b>Warwick</b> (★) to see owner details inline.";
   }
   $("townnote").innerHTML=note;
   renderHead();
